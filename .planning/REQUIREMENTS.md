@@ -20,8 +20,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Mobile Interface
 
 - [ ] **MOB-01**: Mobile-optimized UI with large tap targets for one-handed use
-- [ ] **MOB-02**: Single user authentication (simple login)
-- [ ] **MOB-03**: PWA-installable to prevent Safari storage eviction
+- [x] **MOB-02**: Single user authentication (simple login)
+- [x] **MOB-03**: PWA-installable to prevent Safari storage eviction
 
 ### Dashboard
 
@@ -80,8 +80,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REC-06 | Phase 1 | Pending |
 | REC-07 | Phase 1 | Pending |
 | MOB-01 | Phase 1 | Pending |
-| MOB-02 | Phase 1 | Pending |
-| MOB-03 | Phase 1 | Pending |
+| MOB-02 | Phase 1 | Complete |
+| MOB-03 | Phase 1 | Complete |
 | DASH-01 | Phase 2 | Pending |
 | DASH-02 | Phase 2 | Pending |
 | DASH-03 | Phase 2 | Pending |
