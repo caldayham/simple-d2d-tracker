@@ -11,11 +11,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **REC-01**: User can start a canvassing session with one tap
 - [ ] **REC-02**: User can stop/end a canvassing session
-- [ ] **REC-03**: User can start audio recording with one tap (auto-captures GPS location)
-- [ ] **REC-04**: User can stop audio recording with one tap
-- [ ] **REC-05**: Recording auto-associates with nearest house address via reverse geocoding
-- [ ] **REC-06**: Audio file uploads to Supabase Storage after recording stops
-- [ ] **REC-07**: Recording continues reliably when iPhone screen locks (Wake Lock + chunked recording)
+- [x] **REC-03**: User can start audio recording with one tap (auto-captures GPS location)
+- [x] **REC-04**: User can stop audio recording with one tap
+- [x] **REC-05**: Recording auto-associates with nearest house address via reverse geocoding
+- [x] **REC-06**: Audio file uploads to Supabase Storage after recording stops
+- [x] **REC-07**: Recording continues reliably when iPhone screen locks (Wake Lock + chunked recording)
 
 ### Mobile Interface
 
@@ -74,11 +74,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | REC-01 | Phase 1 | Pending |
 | REC-02 | Phase 1 | Pending |
-| REC-03 | Phase 1 | Pending |
-| REC-04 | Phase 1 | Pending |
-| REC-05 | Phase 1 | Pending |
-| REC-06 | Phase 1 | Pending |
-| REC-07 | Phase 1 | Pending |
+| REC-03 | Phase 1 | Complete |
+| REC-04 | Phase 1 | Complete |
+| REC-05 | Phase 1 | Complete |
+| REC-06 | Phase 1 | Complete |
+| REC-07 | Phase 1 | Complete |
 | MOB-01 | Phase 1 | Pending |
 | MOB-02 | Phase 1 | Complete |
 | MOB-03 | Phase 1 | Complete |
