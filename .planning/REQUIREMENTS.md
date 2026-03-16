@@ -72,28 +72,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REC-01 | — | Pending |
-| REC-02 | — | Pending |
-| REC-03 | — | Pending |
-| REC-04 | — | Pending |
-| REC-05 | — | Pending |
-| REC-06 | — | Pending |
-| REC-07 | — | Pending |
-| MOB-01 | — | Pending |
-| MOB-02 | — | Pending |
-| MOB-03 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
-| DASH-05 | — | Pending |
-| DASH-06 | — | Pending |
+| REC-01 | Phase 1 | Pending |
+| REC-02 | Phase 1 | Pending |
+| REC-03 | Phase 1 | Pending |
+| REC-04 | Phase 1 | Pending |
+| REC-05 | Phase 1 | Pending |
+| REC-06 | Phase 1 | Pending |
+| REC-07 | Phase 1 | Pending |
+| MOB-01 | Phase 1 | Pending |
+| MOB-02 | Phase 1 | Pending |
+| MOB-03 | Phase 1 | Pending |
+| DASH-01 | Phase 2 | Pending |
+| DASH-02 | Phase 2 | Pending |
+| DASH-03 | Phase 2 | Pending |
+| DASH-04 | Phase 2 | Pending |
+| DASH-05 | Phase 2 | Pending |
+| DASH-06 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16 ⚠️
+- Mapped to phases: 16
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-16*
-*Last updated: 2026-03-16 after initial definition*
+*Last updated: 2026-03-16 after roadmap creation*
