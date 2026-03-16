@@ -27,13 +27,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can tap once to start recording and once to stop; recording continues when the phone screen locks
   4. Each completed recording appears in Supabase Storage with the correct address auto-resolved from GPS coordinates
   5. App is installable to iPhone home screen and does not lose stored data after 7 days of inactivity
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Project scaffold — Next.js 15 + Supabase setup, database schema, auth, PWA manifest
-- [ ] 01-02: Recording hooks — useAudioRecorder (chunked MediaRecorder + Wake Lock + MIME detection) and useGeolocation (watchPosition + accuracy gate)
-- [ ] 01-03: Mobile recording UI — session controls, one-tap record button, GPS status, address display
-- [ ] 01-04: Upload + geocoding pipeline — client-to-Storage signed URL upload, Nominatim reverse geocoding server action, eager upload queue
+- [ ] 01-01-PLAN.md — Project scaffold: Next.js 15 + Supabase setup, database schema, auth, PWA manifest
+- [ ] 01-02-PLAN.md — Recording hooks: useAudioRecorder (chunked MediaRecorder + Wake Lock + MIME detection) and useGeolocation (watchPosition + accuracy gate)
+- [ ] 01-03-PLAN.md — Upload + geocoding pipeline: signed URL upload, Nominatim reverse geocoding server actions
+- [ ] 01-04-PLAN.md — Mobile recording UI: session controls, record button, GPS status, address display, full flow wiring
 
 ### Phase 2: Desktop Dashboard
 **Goal**: Recorded visits are reviewable from a desktop browser — visible on a map, browsable in a list, and playable with full detail per house
