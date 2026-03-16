@@ -9,8 +9,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Recording & Capture
 
-- [ ] **REC-01**: User can start a canvassing session with one tap
-- [ ] **REC-02**: User can stop/end a canvassing session
+- [x] **REC-01**: User can start a canvassing session with one tap
+- [x] **REC-02**: User can stop/end a canvassing session
 - [x] **REC-03**: User can start audio recording with one tap (auto-captures GPS location)
 - [x] **REC-04**: User can stop audio recording with one tap
 - [x] **REC-05**: Recording auto-associates with nearest house address via reverse geocoding
@@ -19,7 +19,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Mobile Interface
 
-- [ ] **MOB-01**: Mobile-optimized UI with large tap targets for one-handed use
+- [x] **MOB-01**: Mobile-optimized UI with large tap targets for one-handed use
 - [x] **MOB-02**: Single user authentication (simple login)
 - [x] **MOB-03**: PWA-installable to prevent Safari storage eviction
 
@@ -72,14 +72,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REC-01 | Phase 1 | Pending |
-| REC-02 | Phase 1 | Pending |
+| REC-01 | Phase 1 | Complete |
+| REC-02 | Phase 1 | Complete |
 | REC-03 | Phase 1 | Complete |
 | REC-04 | Phase 1 | Complete |
 | REC-05 | Phase 1 | Complete |
 | REC-06 | Phase 1 | Complete |
 | REC-07 | Phase 1 | Complete |
-| MOB-01 | Phase 1 | Pending |
+| MOB-01 | Phase 1 | Complete |
 | MOB-02 | Phase 1 | Complete |
 | MOB-03 | Phase 1 | Complete |
 | DASH-01 | Phase 2 | Pending |
