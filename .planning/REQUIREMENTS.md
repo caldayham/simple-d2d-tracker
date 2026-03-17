@@ -27,9 +27,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **DASH-01**: Map view showing visited houses as colored rectangles (not pins)
 - [x] **DASH-02**: Rectangles color-coded by outcome status or canvassing session
-- [ ] **DASH-03**: Chronological list view of all visits
-- [ ] **DASH-04**: Click any house to see detail view with address, timestamp, and audio playback
-- [ ] **DASH-05**: Filter map and list by canvassing session
+- [x] **DASH-03**: Chronological list view of all visits
+- [x] **DASH-04**: Click any house to see detail view with address, timestamp, and audio playback
+- [x] **DASH-05**: Filter map and list by canvassing session
 - [x] **DASH-06**: Desktop-optimized layout (map + list + detail)
 
 ## v2 Requirements
@@ -84,9 +84,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MOB-03 | Phase 1 | Complete |
 | DASH-01 | Phase 2 | Complete |
 | DASH-02 | Phase 2 | Complete |
-| DASH-03 | Phase 2 | Pending |
-| DASH-04 | Phase 2 | Pending |
-| DASH-05 | Phase 2 | Pending |
+| DASH-03 | Phase 2 | Complete |
+| DASH-04 | Phase 2 | Complete |
+| DASH-05 | Phase 2 | Complete |
 | DASH-06 | Phase 2 | Complete |
 
 **Coverage:**

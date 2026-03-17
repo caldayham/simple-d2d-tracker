@@ -13,7 +13,7 @@ Two phases to a working field tool. Phase 1 builds the recording pipeline — th
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Recording Pipeline** - Mobile web app that reliably records audio + GPS on iPhone Safari and uploads to Supabase
-- [ ] **Phase 2: Desktop Dashboard** - Review interface with Leaflet map, list view, and audio playback for recorded visits
+- [x] **Phase 2: Desktop Dashboard** - Review interface with Leaflet map, list view, and audio playback for recorded visits (completed 2026-03-17)
 
 ## Phase Details
 
@@ -60,4 +60,4 @@ Phases execute in numeric order: 1 → 2
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Recording Pipeline | 0/4 | Not started | - |
-| 2. Desktop Dashboard | 0/3 | Not started | - |
+| 2. Desktop Dashboard | 3/3 | Complete   | 2026-03-17 |
