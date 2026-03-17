@@ -1,5 +1,6 @@
 type GeocodingResult = {
   display_name: string;
+  short_address: string;
   house_number?: string;
   road?: string;
   city?: string;
@@ -11,10 +12,10 @@ export async function reverseGeocode(
 ): Promise<GeocodingResult | null> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`,
       {
         headers: {
-          'User-Agent': 'CanvassingCompanion/1.0 (contact@example.com)',
+          'User-Agent': 'CanvassingCompanion/1.0 (contact@cf.design)',
         },
       }
     );
@@ -25,12 +26,27 @@ export async function reverseGeocode(
     }
 
     const data = await res.json();
+    const addr = data.address || {};
+    const house_number = addr.house_number;
+    const road = addr.road;
+    const city = addr.city || addr.town || addr.village;
+
+    // Build short address like "123 Main St" or "Main St, Palo Alto"
+    let short_address = '';
+    if (house_number && road) {
+      short_address = `${house_number} ${road}`;
+    } else if (road) {
+      short_address = city ? `${road}, ${city}` : road;
+    } else {
+      short_address = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    }
 
     return {
       display_name: data.display_name || '',
-      house_number: data.address?.house_number,
-      road: data.address?.road,
-      city: data.address?.city || data.address?.town || data.address?.village,
+      short_address,
+      house_number,
+      road,
+      city,
     };
   } catch (err) {
     console.error('Reverse geocoding failed:', err);

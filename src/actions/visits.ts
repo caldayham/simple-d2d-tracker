@@ -49,8 +49,27 @@ export async function resolveAndUpdateAddress(
   const supabase = await createClient();
   await supabase
     .from('visits')
-    .update({ address: result.display_name })
+    .update({ address: result.short_address })
     .eq('id', visitId);
 
-  return result.display_name;
+  return result.short_address;
+}
+
+export async function updateVisitResult(
+  visitId: string,
+  result: string
+): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('visits')
+    .update({ result })
+    .eq('id', visitId);
+
+  if (error) throw new Error(`Failed to update visit result: ${error.message}`);
 }

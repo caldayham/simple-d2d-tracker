@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Session } from '@/lib/types';
 
-export async function createSession(): Promise<Session> {
+export async function createSession(lat?: number, lng?: number): Promise<Session> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -11,9 +11,13 @@ export async function createSession(): Promise<Session> {
 
   if (!user) throw new Error('Not authenticated');
 
+  const date = new Date().toISOString().slice(0, 10);
+  const coordStr = lat && lng ? `-${lat.toFixed(2)},${lng.toFixed(2)}` : '';
+  const label = `${date}${coordStr}`;
+
   const { data, error } = await supabase
     .from('sessions')
-    .insert({ user_id: user.id })
+    .insert({ user_id: user.id, label })
     .select()
     .single();
 

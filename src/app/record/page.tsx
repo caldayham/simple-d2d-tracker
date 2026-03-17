@@ -7,24 +7,26 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { createSession, endSession } from '@/actions/sessions';
 import { createSignedUploadUrl } from '@/actions/storage';
-import { createVisit, resolveAndUpdateAddress } from '@/actions/visits';
+import { createVisit, resolveAndUpdateAddress, updateVisitResult } from '@/actions/visits';
 import { createClient } from '@/lib/supabase/client';
 import { getFileExtension } from '@/lib/audio';
 import type { Session } from '@/lib/types';
 import RecordButton from '@/components/recording/RecordButton';
 import SessionControls from '@/components/recording/SessionControls';
 import GpsStatus from '@/components/recording/GpsStatus';
-import AddressDisplay from '@/components/recording/AddressDisplay';
 import UploadStatus from '@/components/recording/UploadStatus';
+import ResultPicker from '@/components/recording/ResultPicker';
 
 const LocationMap = dynamic(() => import('@/components/recording/LocationMap'), {
   ssr: false,
 });
 
 type SessionVisit = {
+  id: string;
   address: string | null;
   duration: number;
   recordedAt: string;
+  result: string | null;
 };
 
 export default function RecordPage() {
@@ -32,11 +34,15 @@ export default function RecordPage() {
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [lastAddress, setLastAddress] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState<string | null>(null);
+  const [isFetchingAddress, setIsFetchingAddress] = useState(false);
   const [pendingUploads, setPendingUploads] = useState(0);
   const [lastUploadStatus, setLastUploadStatus] = useState<
     'idle' | 'uploading' | 'success' | 'error'
   >('idle');
   const [sessionVisits, setSessionVisits] = useState<SessionVisit[]>([]);
+  const [pendingResultVisitId, setPendingResultVisitId] = useState<string | null>(null);
+  const [isSubmittingResult, setIsSubmittingResult] = useState(false);
 
   const {
     isRecording,
@@ -64,14 +70,49 @@ export default function RecordPage() {
     toast.error(geoError);
   }
 
+  const handleUpdateAddress = useCallback(async () => {
+    if (!position) return;
+    setIsFetchingAddress(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.latitude}&lon=${position.longitude}&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'CanvassingCompanion/1.0 (contact@cf.design)',
+          },
+        }
+      );
+      if (!res.ok) throw new Error('Geocoding failed');
+      const data = await res.json();
+      const addr = data.address || {};
+      let short = '';
+      if (addr.house_number && addr.road) {
+        short = `${addr.house_number} ${addr.road}`;
+      } else if (addr.road) {
+        short = addr.road;
+      } else {
+        short = data.display_name || `${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`;
+      }
+      setCurrentAddress(short);
+    } catch {
+      toast.error('Could not resolve address');
+    } finally {
+      setIsFetchingAddress(false);
+    }
+  }, [position]);
+
   const handleStartSession = useCallback(async () => {
     setIsSessionLoading(true);
     try {
-      const session = await createSession();
+      const session = await createSession(
+        position?.latitude,
+        position?.longitude
+      );
       setActiveSession(session);
       startWatching();
       setSessionVisits([]);
       setLastAddress(null);
+      setCurrentAddress(null);
       setLastUploadStatus('idle');
     } catch (err) {
       toast.error('Failed to start session');
@@ -79,7 +120,7 @@ export default function RecordPage() {
     } finally {
       setIsSessionLoading(false);
     }
-  }, [startWatching]);
+  }, [startWatching, position]);
 
   const handleEndSession = useCallback(async () => {
     if (!activeSession || isRecording) return;
@@ -90,8 +131,10 @@ export default function RecordPage() {
       setActiveSession(null);
       setSessionVisits([]);
       setLastAddress(null);
+      setCurrentAddress(null);
       setLastUploadStatus('idle');
       setPendingUploads(0);
+      setPendingResultVisitId(null);
     } catch (err) {
       toast.error('Failed to end session');
       console.error(err);
@@ -113,21 +156,16 @@ export default function RecordPage() {
 
     try {
       const result = await stopRecording();
-
-      // Capture current position
       const { latitude, longitude } = position;
 
       setLastUploadStatus('uploading');
       setPendingUploads((p) => p + 1);
 
-      // Generate file path
       const ext = getFileExtension(result.mimeType);
       const filePath = `recordings/${activeSession.id}/${Date.now()}.${ext}`;
 
-      // Get signed URL
       const { path, token } = await createSignedUploadUrl(filePath);
 
-      // Upload directly to Supabase Storage
       const supabase = createClient();
       const { error: uploadError } = await supabase.storage
         .from('audio')
@@ -139,7 +177,6 @@ export default function RecordPage() {
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      // Create visit record
       const visit = await createVisit({
         session_id: activeSession.id,
         latitude,
@@ -152,44 +189,63 @@ export default function RecordPage() {
       setLastUploadStatus('success');
       setPendingUploads((p) => Math.max(0, p - 1));
 
-      // Add to session visits
+      // Show result picker
+      setPendingResultVisitId(visit.id);
+
       const newVisit: SessionVisit = {
-        address: null,
+        id: visit.id,
+        address: currentAddress,
         duration: result.durationSeconds,
         recordedAt: new Date().toISOString(),
+        result: null,
       };
       setSessionVisits((prev) => [newVisit, ...prev]);
+      setLastAddress(currentAddress);
 
-      // Fire-and-forget: resolve address
+      // Also resolve address server-side to save to DB
       setIsResolving(true);
       resolveAndUpdateAddress(visit.id, latitude, longitude)
         .then((address) => {
-          setLastAddress(address);
+          if (address) {
+            setLastAddress(address);
+            setSessionVisits((prev) =>
+              prev.map((v) =>
+                v.id === visit.id ? { ...v, address } : v
+              )
+            );
+          }
           setIsResolving(false);
-          // Update the visit in the list
-          setSessionVisits((prev) =>
-            prev.map((v, i) =>
-              i === 0 ? { ...v, address: address || 'Address unavailable' } : v
-            )
-          );
         })
-        .catch(() => {
-          setIsResolving(false);
-          setSessionVisits((prev) =>
-            prev.map((v, i) =>
-              i === 0 ? { ...v, address: 'Address unavailable' } : v
-            )
-          );
-        });
+        .catch(() => setIsResolving(false));
     } catch (err) {
       setLastUploadStatus('error');
       setPendingUploads((p) => Math.max(0, p - 1));
       toast.error(err instanceof Error ? err.message : 'Recording failed');
       console.error(err);
     }
-  }, [activeSession, position, stopRecording]);
+  }, [activeSession, position, stopRecording, currentAddress]);
 
-  const recordDisabled = !activeSession || !isAccurate || lastUploadStatus === 'uploading';
+  const handleResultSelect = useCallback(async (result: string) => {
+    if (!pendingResultVisitId) return;
+    setIsSubmittingResult(true);
+    try {
+      await updateVisitResult(pendingResultVisitId, result);
+      setSessionVisits((prev) =>
+        prev.map((v) =>
+          v.id === pendingResultVisitId ? { ...v, result } : v
+        )
+      );
+      setPendingResultVisitId(null);
+      setCurrentAddress(null); // Reset for next house
+    } catch (err) {
+      toast.error('Failed to save result');
+      console.error(err);
+    } finally {
+      setIsSubmittingResult(false);
+    }
+  }, [pendingResultVisitId]);
+
+  const recordDisabled = !activeSession || !isAccurate || lastUploadStatus === 'uploading' || !!pendingResultVisitId;
 
   return (
     <div className="relative min-h-screen">
@@ -228,26 +284,62 @@ export default function RecordPage() {
           />
         </div>
 
-        {/* Record Button - centered hero element */}
+        {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center gap-4 pointer-events-auto">
-          <RecordButton
-            isRecording={isRecording}
-            duration={duration}
-            disabled={recordDisabled}
-            onStart={handleStartRecording}
-            onStop={handleStopRecording}
-          />
+          {pendingResultVisitId ? (
+            <>
+              <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2">
+                <p className="text-white text-sm font-medium">
+                  {lastAddress || 'Resolving address...'}
+                </p>
+              </div>
+              <ResultPicker
+                onSelect={handleResultSelect}
+                isSubmitting={isSubmittingResult}
+              />
+            </>
+          ) : (
+            <>
+              <RecordButton
+                isRecording={isRecording}
+                duration={duration}
+                disabled={recordDisabled}
+                onStart={handleStartRecording}
+                onStop={handleStopRecording}
+              />
 
-          {/* Address Display */}
-          <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2">
-            <AddressDisplay address={lastAddress} isResolving={isResolving} />
-          </div>
+              {/* Current address + update button */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2 min-w-[200px] text-center">
+                  {currentAddress ? (
+                    <p className="text-white text-sm font-medium">{currentAddress}</p>
+                  ) : (
+                    <p className="text-white/40 text-sm">No address yet</p>
+                  )}
+                </div>
+                <button
+                  onClick={handleUpdateAddress}
+                  disabled={!position || isFetchingAddress}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium min-h-[44px]
+                    transition-all active:scale-95
+                    ${!position || isFetchingAddress
+                      ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                      : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+                    }
+                  `}
+                >
+                  {isFetchingAddress ? 'Finding...' : 'Update Address'}
+                </button>
+              </div>
 
-          {/* Upload Status */}
-          <UploadStatus
-            pendingUploads={pendingUploads}
-            lastUploadStatus={lastUploadStatus}
-          />
+              {/* Upload Status */}
+              <UploadStatus
+                pendingUploads={pendingUploads}
+                lastUploadStatus={lastUploadStatus}
+              />
+            </>
+          )}
         </div>
 
         {/* Recent Visits List */}
@@ -257,14 +349,27 @@ export default function RecordPage() {
               Recent Visits
             </h2>
             <div className="space-y-2">
-              {sessionVisits.map((visit, i) => (
+              {sessionVisits.map((visit) => (
                 <div
-                  key={i}
+                  key={visit.id}
                   className="rounded-lg bg-black/50 backdrop-blur-sm border border-white/10 p-3 text-sm"
                 >
-                  <p className="text-white">
-                    {visit.address || 'Resolving address...'}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-white">
+                      {visit.address || 'Resolving address...'}
+                    </p>
+                    {visit.result && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        visit.result === 'Interested' ? 'bg-green-600/80 text-white' :
+                        visit.result === 'Booked Consult' ? 'bg-blue-600/80 text-white' :
+                        visit.result === 'Not Home' ? 'bg-yellow-600/80 text-white' :
+                        visit.result === 'Come Back Later' ? 'bg-orange-500/80 text-white' :
+                        'bg-zinc-500/80 text-white'
+                      }`}>
+                        {visit.result}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-white/60 mt-1">
                     {Math.floor(visit.duration / 60)}:{(visit.duration % 60)
                       .toString()
