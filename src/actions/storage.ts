@@ -22,3 +22,20 @@ export async function createSignedUploadUrl(filePath: string) {
     token: data.token,
   };
 }
+
+export async function createSignedDownloadUrl(filePath: string): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase.storage
+    .from('audio')
+    .createSignedUrl(filePath, 3600);
+
+  if (error) throw new Error(`Failed to create download URL: ${error.message}`);
+
+  return data.signedUrl;
+}
