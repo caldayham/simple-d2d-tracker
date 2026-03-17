@@ -16,6 +16,7 @@ import SessionControls from '@/components/recording/SessionControls';
 import GpsStatus from '@/components/recording/GpsStatus';
 import UploadStatus from '@/components/recording/UploadStatus';
 import ResultPicker from '@/components/recording/ResultPicker';
+import AddressEditor from '@/components/recording/AddressEditor';
 
 const LocationMap = dynamic(() => import('@/components/recording/LocationMap'), {
   ssr: false,
@@ -308,30 +309,14 @@ export default function RecordPage() {
                 onStop={handleStopRecording}
               />
 
-              {/* Current address + update button */}
-              <div className="flex flex-col items-center gap-2">
-                <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2 min-w-[200px] text-center">
-                  {currentAddress ? (
-                    <p className="text-white text-sm font-medium">{currentAddress}</p>
-                  ) : (
-                    <p className="text-white/40 text-sm">No address yet</p>
-                  )}
-                </div>
-                <button
-                  onClick={handleUpdateAddress}
-                  disabled={!position || isFetchingAddress}
-                  className={`
-                    px-4 py-2 rounded-lg text-sm font-medium min-h-[44px]
-                    transition-all active:scale-95
-                    ${!position || isFetchingAddress
-                      ? 'bg-white/10 text-white/30 cursor-not-allowed'
-                      : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
-                    }
-                  `}
-                >
-                  {isFetchingAddress ? 'Finding...' : 'Update Address'}
-                </button>
-              </div>
+              {/* Address editor with manual override + nearby search */}
+              <AddressEditor
+                currentAddress={currentAddress}
+                position={position}
+                isFetching={isFetchingAddress}
+                onUpdateAddress={handleUpdateAddress}
+                onSetAddress={setCurrentAddress}
+              />
 
               {/* Upload Status */}
               <UploadStatus

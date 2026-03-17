@@ -18,12 +18,15 @@ export default function SessionControls({
 }: SessionControlsProps) {
   if (activeSession) {
     return (
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-black/50 backdrop-blur-sm px-4 py-3">
         <div className="flex-1">
-          <p className="text-sm font-medium text-green-700 dark:text-green-400">
-            Session Active
-          </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <p className="text-sm font-medium text-green-400">
+              Session Active
+            </p>
+          </div>
+          <p className="text-xs text-white/50 mt-0.5">
             Started{' '}
             {formatDistanceToNow(new Date(activeSession.started_at), {
               addSuffix: true,
@@ -33,7 +36,7 @@ export default function SessionControls({
         <button
           onClick={onEnd}
           disabled={isLoading}
-          className="rounded-lg border border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="rounded-lg bg-red-600/80 hover:bg-red-600 px-4 py-3 text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
         >
           {isLoading ? 'Ending...' : 'End Session'}
         </button>
@@ -45,7 +48,7 @@ export default function SessionControls({
     <button
       onClick={onStart}
       disabled={isLoading}
-      className="w-full rounded-lg bg-green-600 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+      className="w-full rounded-xl bg-green-600 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] shadow-lg"
     >
       {isLoading ? 'Starting...' : 'Start Canvassing'}
     </button>
