@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-03-17T07:37:41Z"
+status: unknown
+last_updated: "2026-03-17T08:02:48.042Z"
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 7
 ---
 
 # Project State
@@ -23,29 +23,31 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Phase: 2 of 2 (Desktop Dashboard)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: Executing phase
-Last activity: 2026-03-17 — Completed 02-01-PLAN.md
+Last activity: 2026-03-17 — Completed 02-02-PLAN.md
 
-Progress: [███████░░░] 71%
+Progress: [████████░░] 86%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 2min
-- Total execution time: 11min
+- Total execution time: 12min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 4/4 | 9min | 2min |
-| 02 | 1/3 | 2min | 2min |
+| 02 | 2/3 | 3min | 1.5min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 1min, 1min, 2min, 2min
+- Last 5 plans: 1min, 1min, 2min, 2min, 1min
 - Trend: Consistent
+| Phase 02 P02 | 1min | 1 tasks | 1 files |
+| Phase 02 P03 | 1min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -58,6 +60,7 @@ Recent decisions affecting current work:
 - DashboardMap loaded via next/dynamic with ssr:false to prevent Leaflet SSR issues
 - Audio goes client-to-Supabase-Storage directly via signed URLs — never through Next.js server body (1MB limit)
 - Reverse geocoding is non-blocking: coordinates saved immediately, address resolves async via Nominatim
+- [Phase 02]: Used CartoDB dark_all tiles and 0.00005-degree rectangle offset for house-sized markers
 
 ### Pending Todos
 
@@ -72,5 +75,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-17
-Stopped at: Completed 02-01-PLAN.md (dashboard foundation) — Wave 2 ready
+Stopped at: Completed 02-02-PLAN.md (dashboard map) -- Wave 2 continues
 Resume file: None
