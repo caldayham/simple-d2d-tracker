@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-16T23:30:49.145Z"
+status: executing
+last_updated: "2026-03-17T07:37:41Z"
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 7
+  completed_plans: 5
 ---
 
 # Project State
@@ -18,32 +18,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** One-tap audio recording with automatic location capture — so every doorstep conversation is logged to the right house with zero friction while canvassing.
-**Current focus:** Phase 1 — Recording Pipeline
+**Current focus:** Phase 2 — Desktop Dashboard
 
 ## Current Position
 
-Phase: 1 of 2 (Recording Pipeline)
-Plan: 4 of 4 in current phase
-Status: Phase complete, pending verification
-Last activity: 2026-03-16 — Completed 01-04-PLAN.md
+Phase: 2 of 2 (Desktop Dashboard)
+Plan: 1 of 3 in current phase
+Status: Executing phase
+Last activity: 2026-03-17 — Completed 02-01-PLAN.md
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 2min
-- Total execution time: 9min
+- Total execution time: 11min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 4/4 | 9min | 2min |
+| 02 | 1/3 | 2min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 1min, 1min, 2min
+- Last 5 plans: 5min, 1min, 1min, 2min, 2min
 - Trend: Consistent
 
 ## Accumulated Context
@@ -53,10 +54,10 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- All iOS pitfalls (Wake Lock, chunked recording, MIME detection, GPS accuracy gate, PWA eviction) must be resolved in Phase 1 — not retrofittable
+- Visits query uses inner join on sessions to scope by user_id since visits table lacks user_id column
+- DashboardMap loaded via next/dynamic with ssr:false to prevent Leaflet SSR issues
 - Audio goes client-to-Supabase-Storage directly via signed URLs — never through Next.js server body (1MB limit)
 - Reverse geocoding is non-blocking: coordinates saved immediately, address resolves async via Nominatim
-- Opus codec at 32-64kbps for voice — extends Supabase free tier 4-8x vs. default bitrate
 
 ### Pending Todos
 
@@ -70,6 +71,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16
-Stopped at: Completed 01-04-PLAN.md (mobile recording UI) — Phase 1 execution complete
+Last session: 2026-03-17
+Stopped at: Completed 02-01-PLAN.md (dashboard foundation) — Wave 2 ready
 Resume file: None

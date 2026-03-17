@@ -30,7 +30,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DASH-03**: Chronological list view of all visits
 - [ ] **DASH-04**: Click any house to see detail view with address, timestamp, and audio playback
 - [ ] **DASH-05**: Filter map and list by canvassing session
-- [ ] **DASH-06**: Desktop-optimized layout (map + list + detail)
+- [x] **DASH-06**: Desktop-optimized layout (map + list + detail)
 
 ## v2 Requirements
 
@@ -87,7 +87,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-03 | Phase 2 | Pending |
 | DASH-04 | Phase 2 | Pending |
 | DASH-05 | Phase 2 | Pending |
-| DASH-06 | Phase 2 | Pending |
+| DASH-06 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 16 total
