@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -15,6 +16,10 @@ import SessionControls from '@/components/recording/SessionControls';
 import GpsStatus from '@/components/recording/GpsStatus';
 import AddressDisplay from '@/components/recording/AddressDisplay';
 import UploadStatus from '@/components/recording/UploadStatus';
+
+const LocationMap = dynamic(() => import('@/components/recording/LocationMap'), {
+  ssr: false,
+});
 
 type SessionVisit = {
   address: string | null;
@@ -187,80 +192,92 @@ export default function RecordPage() {
   const recordDisabled = !activeSession || !isAccurate || lastUploadStatus === 'uploading';
 
   return (
-    <div className="flex min-h-screen flex-col px-4 pt-safe pb-safe">
-      {/* Header */}
-      <div className="pt-4 pb-2">
-        <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 text-center">
-          Canvassing Companion
-        </h1>
-      </div>
+    <div className="relative min-h-screen">
+      {/* Background Map */}
+      <LocationMap
+        latitude={position?.latitude ?? null}
+        longitude={position?.longitude ?? null}
+        accuracy={accuracy}
+      />
 
-      {/* Session Controls */}
-      <div className="py-3">
-        <SessionControls
-          activeSession={activeSession}
-          isLoading={isSessionLoading}
-          onStart={handleStartSession}
-          onEnd={handleEndSession}
-        />
-      </div>
-
-      {/* GPS Status */}
-      <div className="flex justify-center py-2">
-        <GpsStatus
-          accuracy={accuracy}
-          isWatching={isWatching}
-          isAccurate={isAccurate}
-        />
-      </div>
-
-      {/* Record Button - centered hero element */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-4">
-        <RecordButton
-          isRecording={isRecording}
-          duration={duration}
-          disabled={recordDisabled}
-          onStart={handleStartRecording}
-          onStop={handleStopRecording}
-        />
-
-        {/* Address Display */}
-        <AddressDisplay address={lastAddress} isResolving={isResolving} />
-
-        {/* Upload Status */}
-        <UploadStatus
-          pendingUploads={pendingUploads}
-          lastUploadStatus={lastUploadStatus}
-        />
-      </div>
-
-      {/* Recent Visits List */}
-      {sessionVisits.length > 0 && (
-        <div className="pb-4">
-          <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-            Recent Visits
-          </h2>
-          <div className="space-y-2">
-            {sessionVisits.map((visit, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 text-sm"
-              >
-                <p className="text-zinc-800 dark:text-zinc-200">
-                  {visit.address || 'Resolving address...'}
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                  {Math.floor(visit.duration / 60)}:{(visit.duration % 60)
-                    .toString()
-                    .padStart(2, '0')}{' '}
-                  &middot;{' '}
-                  {new Date(visit.recordedAt).toLocaleTimeString()}
-                </p>
-              </div>
-            ))}
-          </div>
+      {/* Overlay UI */}
+      <div className="relative z-10 flex min-h-screen flex-col px-4 pt-safe pb-safe pointer-events-none">
+        {/* Header */}
+        <div className="pt-4 pb-2 pointer-events-auto">
+          <h1 className="text-lg font-semibold text-white text-center drop-shadow-md">
+            Canvassing Companion
+          </h1>
         </div>
-      )}
+
+        {/* Session Controls */}
+        <div className="py-3 pointer-events-auto">
+          <SessionControls
+            activeSession={activeSession}
+            isLoading={isSessionLoading}
+            onStart={handleStartSession}
+            onEnd={handleEndSession}
+          />
+        </div>
+
+        {/* GPS Status */}
+        <div className="flex justify-center py-2 pointer-events-auto">
+          <GpsStatus
+            accuracy={accuracy}
+            isWatching={isWatching}
+            isAccurate={isAccurate}
+          />
+        </div>
+
+        {/* Record Button - centered hero element */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 pointer-events-auto">
+          <RecordButton
+            isRecording={isRecording}
+            duration={duration}
+            disabled={recordDisabled}
+            onStart={handleStartRecording}
+            onStop={handleStopRecording}
+          />
+
+          {/* Address Display */}
+          <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2">
+            <AddressDisplay address={lastAddress} isResolving={isResolving} />
+          </div>
+
+          {/* Upload Status */}
+          <UploadStatus
+            pendingUploads={pendingUploads}
+            lastUploadStatus={lastUploadStatus}
+          />
+        </div>
+
+        {/* Recent Visits List */}
+        {sessionVisits.length > 0 && (
+          <div className="pb-4 pointer-events-auto">
+            <h2 className="text-sm font-medium text-white/70 mb-2">
+              Recent Visits
+            </h2>
+            <div className="space-y-2">
+              {sessionVisits.map((visit, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg bg-black/50 backdrop-blur-sm border border-white/10 p-3 text-sm"
+                >
+                  <p className="text-white">
+                    {visit.address || 'Resolving address...'}
+                  </p>
+                  <p className="text-xs text-white/60 mt-1">
+                    {Math.floor(visit.duration / 60)}:{(visit.duration % 60)
+                      .toString()
+                      .padStart(2, '0')}{' '}
+                    &middot;{' '}
+                    {new Date(visit.recordedAt).toLocaleTimeString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
