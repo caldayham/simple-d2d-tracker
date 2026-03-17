@@ -45,12 +45,12 @@ Plans:
   3. User can view a chronological list of all visits alongside or toggled with the map
   4. User can click any house to see its address, timestamp, and play back the audio recording
   5. User can filter both map and list to show only visits from a selected canvassing session
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Dashboard layout — desktop route group, server component data fetch, map + list + detail split
-- [ ] 02-02: Leaflet map — dynamic import (SSR false), house rectangles, session color-coding, click-to-detail
-- [ ] 02-03: List view + detail panel — chronological list, session filter, audio playback via signed download URLs
+- [ ] 02-01-PLAN.md — Dashboard foundation: layout, server data fetching, component shell with stubs
+- [ ] 02-02-PLAN.md — Leaflet map with session-colored house rectangles, click-to-select, auto-fit bounds
+- [ ] 02-03-PLAN.md — Session filter, chronological visit list, detail panel with audio playback
 
 ## Progress
 
