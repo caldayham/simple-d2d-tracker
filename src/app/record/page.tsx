@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -44,6 +44,7 @@ export default function RecordPage() {
   const [sessionVisits, setSessionVisits] = useState<SessionVisit[]>([]);
   const [pendingResultVisitId, setPendingResultVisitId] = useState<string | null>(null);
   const [isSubmittingResult, setIsSubmittingResult] = useState(false);
+  const pendingResultRef = useRef<{ tempId: string; result: string; notes?: string } | null>(null);
 
   const {
     isRecording,
@@ -158,95 +159,133 @@ export default function RecordPage() {
     try {
       const result = await stopRecording();
       const { latitude, longitude } = position;
+      const recordingDuration = result.durationSeconds;
 
-      setLastUploadStatus('uploading');
-      setPendingUploads((p) => p + 1);
-
-      const ext = getFileExtension(result.mimeType);
-      const filePath = `recordings/${activeSession.id}/${Date.now()}.${ext}`;
-
-      const { path, token } = await createSignedUploadUrl(filePath);
-
-      const supabase = createClient();
-      const { error: uploadError } = await supabase.storage
-        .from('audio')
-        .uploadToSignedUrl(path, token, result.blob, {
-          contentType: result.mimeType,
-        });
-
-      if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}`);
-      }
-
-      const visit = await createVisit({
-        session_id: activeSession.id,
-        latitude,
-        longitude,
-        audio_path: filePath,
-        audio_mime_type: result.mimeType,
-        audio_duration_seconds: result.durationSeconds,
-      });
-
-      setLastUploadStatus('success');
-      setPendingUploads((p) => Math.max(0, p - 1));
-
-      // Show result picker
-      setPendingResultVisitId(visit.id);
-
+      // Create a temporary visit ID for immediate UI feedback
+      const tempId = `temp-${Date.now()}`;
       const newVisit: SessionVisit = {
-        id: visit.id,
+        id: tempId,
         address: currentAddress,
-        duration: result.durationSeconds,
+        duration: recordingDuration,
         recordedAt: new Date().toISOString(),
         result: null,
       };
       setSessionVisits((prev) => [newVisit, ...prev]);
       setLastAddress(currentAddress);
 
-      // Also resolve address server-side to save to DB
-      setIsResolving(true);
-      resolveAndUpdateAddress(visit.id, latitude, longitude)
-        .then((address) => {
-          if (address) {
-            setLastAddress(address);
-            setSessionVisits((prev) =>
-              prev.map((v) =>
-                v.id === visit.id ? { ...v, address } : v
-              )
-            );
-          }
-          setIsResolving(false);
-        })
-        .catch(() => setIsResolving(false));
+      // Show result picker immediately
+      setPendingResultVisitId(tempId);
+
+      // Queue upload + visit creation in background
+      setPendingUploads((p) => p + 1);
+      setLastUploadStatus('uploading');
+
+      const uploadAndCreate = async () => {
+        const ext = getFileExtension(result.mimeType);
+        const filePath = `recordings/${activeSession.id}/${Date.now()}.${ext}`;
+
+        const { path, token } = await createSignedUploadUrl(filePath);
+
+        const supabase = createClient();
+        const { error: uploadError } = await supabase.storage
+          .from('audio')
+          .uploadToSignedUrl(path, token, result.blob, {
+            contentType: result.mimeType,
+          });
+
+        if (uploadError) {
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+
+        const visit = await createVisit({
+          session_id: activeSession.id,
+          latitude,
+          longitude,
+          audio_path: filePath,
+          audio_mime_type: result.mimeType,
+          audio_duration_seconds: recordingDuration,
+        });
+
+        // Swap temp ID for real visit ID
+        setSessionVisits((prev) =>
+          prev.map((v) => (v.id === tempId ? { ...v, id: visit.id } : v))
+        );
+        setPendingResultVisitId((prev) => (prev === tempId ? visit.id : prev));
+
+        setLastUploadStatus('success');
+        setPendingUploads((p) => Math.max(0, p - 1));
+
+        // Apply any result/notes that were selected while upload was in progress
+        if (pendingResultRef.current?.tempId === tempId) {
+          const { result: pendingResult, notes: pendingNotes } = pendingResultRef.current;
+          pendingResultRef.current = null;
+          updateVisitResult(visit.id, pendingResult, pendingNotes).catch((err) => {
+            toast.error('Failed to save result');
+            console.error(err);
+          });
+        }
+
+        // Resolve address server-side
+        setIsResolving(true);
+        resolveAndUpdateAddress(visit.id, latitude, longitude)
+          .then((address) => {
+            if (address) {
+              setLastAddress(address);
+              setSessionVisits((prev) =>
+                prev.map((v) =>
+                  v.id === visit.id ? { ...v, address } : v
+                )
+              );
+            }
+            setIsResolving(false);
+          })
+          .catch(() => setIsResolving(false));
+      };
+
+      uploadAndCreate().catch((err) => {
+        setLastUploadStatus('error');
+        setPendingUploads((p) => Math.max(0, p - 1));
+        toast.error(err instanceof Error ? err.message : 'Upload failed');
+        console.error(err);
+      });
     } catch (err) {
-      setLastUploadStatus('error');
-      setPendingUploads((p) => Math.max(0, p - 1));
       toast.error(err instanceof Error ? err.message : 'Recording failed');
       console.error(err);
     }
   }, [activeSession, position, stopRecording, currentAddress]);
 
-  const handleResultSelect = useCallback(async (result: string) => {
+  const handleResultSelect = useCallback(async (result: string, notes?: string) => {
     if (!pendingResultVisitId) return;
     setIsSubmittingResult(true);
-    try {
-      await updateVisitResult(pendingResultVisitId, result);
-      setSessionVisits((prev) =>
-        prev.map((v) =>
-          v.id === pendingResultVisitId ? { ...v, result } : v
-        )
-      );
-      setPendingResultVisitId(null);
-      setCurrentAddress(null); // Reset for next house
-    } catch (err) {
-      toast.error('Failed to save result');
-      console.error(err);
-    } finally {
+
+    // Update UI immediately
+    setSessionVisits((prev) =>
+      prev.map((v) =>
+        v.id === pendingResultVisitId ? { ...v, result } : v
+      )
+    );
+
+    const visitId = pendingResultVisitId;
+    setPendingResultVisitId(null);
+    setCurrentAddress(null); // Reset for next house
+
+    if (visitId.startsWith('temp-')) {
+      // Upload still in progress — stash result to apply when real ID arrives
+      pendingResultRef.current = { tempId: visitId, result, notes };
       setIsSubmittingResult(false);
+    } else {
+      try {
+        await updateVisitResult(visitId, result, notes);
+      } catch (err) {
+        toast.error('Failed to save result');
+        console.error(err);
+      } finally {
+        setIsSubmittingResult(false);
+      }
     }
   }, [pendingResultVisitId]);
 
-  const recordDisabled = !activeSession || !isAccurate || lastUploadStatus === 'uploading' || !!pendingResultVisitId;
+  const recordDisabled = !activeSession || !isAccurate || !!pendingResultVisitId;
 
   return (
     <div className="relative min-h-screen">

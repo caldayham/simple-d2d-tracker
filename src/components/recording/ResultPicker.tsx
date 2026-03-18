@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { VISIT_RESULTS } from '@/lib/types';
 
 const RESULT_COLORS: Record<string, string> = {
@@ -11,11 +12,13 @@ const RESULT_COLORS: Record<string, string> = {
 };
 
 interface ResultPickerProps {
-  onSelect: (result: string) => void;
+  onSelect: (result: string, notes?: string) => void;
   isSubmitting: boolean;
 }
 
 export default function ResultPicker({ onSelect, isSubmitting }: ResultPickerProps) {
+  const [notes, setNotes] = useState('');
+
   return (
     <div className="rounded-xl bg-black/70 backdrop-blur-md p-4 w-full max-w-sm">
       <p className="text-white text-sm font-medium text-center mb-3">
@@ -25,7 +28,7 @@ export default function ResultPicker({ onSelect, isSubmitting }: ResultPickerPro
         {VISIT_RESULTS.map((result) => (
           <button
             key={result}
-            onClick={() => onSelect(result)}
+            onClick={() => onSelect(result, notes || undefined)}
             disabled={isSubmitting}
             className={`
               w-full py-3 px-4 rounded-lg text-white font-medium text-sm
@@ -37,6 +40,13 @@ export default function ResultPicker({ onSelect, isSubmitting }: ResultPickerPro
           </button>
         ))}
       </div>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Add notes (optional)..."
+        rows={2}
+        className="mt-3 w-full rounded-lg bg-white/10 border border-white/20 text-white text-sm px-3 py-2 placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/40 resize-none"
+      />
     </div>
   );
 }

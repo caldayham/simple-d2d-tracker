@@ -57,7 +57,8 @@ export async function resolveAndUpdateAddress(
 
 export async function updateVisitResult(
   visitId: string,
-  result: string
+  result: string,
+  notes?: string
 ): Promise<void> {
   const supabase = await createClient();
   const {
@@ -66,9 +67,12 @@ export async function updateVisitResult(
 
   if (!user) throw new Error('Not authenticated');
 
+  const update: Record<string, string> = { result };
+  if (notes) update.notes = notes;
+
   const { error } = await supabase
     .from('visits')
-    .update({ result })
+    .update(update)
     .eq('id', visitId);
 
   if (error) throw new Error(`Failed to update visit result: ${error.message}`);

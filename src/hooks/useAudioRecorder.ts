@@ -53,6 +53,11 @@ export function useAudioRecorder() {
 
     mediaRecorderRef.current = null;
     stoppingRef.current = false;
+
+    // Unlock orientation
+    try {
+      screen.orientation?.unlock();
+    } catch {}
   }, []);
 
   const stopRecording = useCallback((): Promise<RecordingResult> => {
@@ -166,17 +171,30 @@ export function useAudioRecorder() {
         setDuration(durationRef.current);
       }, 1000);
 
-      // Register visibilitychange listener
-      const handleVisibility = () => {
+      // Re-acquire wake lock if visibility returns (e.g., pocket then back)
+      const handleVisibility = async () => {
         if (
-          document.visibilityState === 'hidden' &&
-          mediaRecorderRef.current?.state === 'recording'
+          document.visibilityState === 'visible' &&
+          mediaRecorderRef.current?.state === 'recording' &&
+          !wakeLockRef.current
         ) {
-          stopRecording().catch(() => {});
+          try {
+            if ('wakeLock' in navigator) {
+              wakeLockRef.current = await navigator.wakeLock.request('screen');
+            }
+          } catch {}
         }
       };
       visibilityHandlerRef.current = handleVisibility;
       document.addEventListener('visibilitychange', handleVisibility);
+
+      // Lock orientation to current orientation during recording
+      try {
+        const orientation = screen.orientation as ScreenOrientation & { lock?: (type: string) => Promise<void> };
+        if (orientation?.lock) {
+          await orientation.lock(orientation.type).catch(() => {});
+        }
+      } catch {}
     } catch (err) {
       cleanup();
       setIsRecording(false);
