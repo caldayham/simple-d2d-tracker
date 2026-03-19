@@ -1,21 +1,32 @@
 'use client';
 
-import { useEffect, useMemo, memo } from 'react';
-import { MapContainer, TileLayer, Rectangle, useMap } from 'react-leaflet';
+import { useEffect, useMemo, memo, useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import type { LatLngBoundsExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Visit } from '@/lib/types';
 
 const PALO_ALTO_CENTER: [number, number] = [37.4419, -122.143];
 const DEFAULT_ZOOM = 13;
+const MARKER_SIZE = 20;
+const MARKER_SIZE_SELECTED = 26;
 
-function visitToBounds(lat: number, lng: number): LatLngBoundsExpression {
-  const offset = 0.00005; // ~5 meters at Palo Alto latitude
-  return [
-    [lat - offset, lng - offset],
-    [lat + offset, lng + offset],
-  ];
+function createSquareIcon(color: string, isSelected: boolean): L.DivIcon {
+  const size = isSelected ? MARKER_SIZE_SELECTED : MARKER_SIZE;
+  return L.divIcon({
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<div style="
+      width:${size}px;
+      height:${size}px;
+      background:${color};
+      opacity:${isSelected ? 0.95 : 0.7};
+      border:${isSelected ? '2px solid #fff' : '1px solid rgba(255,255,255,0.3)'};
+      border-radius:2px;
+      cursor:pointer;
+    "></div>`,
+  });
 }
 
 function FitBounds({ visits }: { visits: Visit[] }) {
@@ -35,7 +46,7 @@ function FitBounds({ visits }: { visits: Visit[] }) {
   return null;
 }
 
-const VisitRectangle = memo(function VisitRectangle({
+const VisitMarker = memo(function VisitMarker({
   visit,
   color,
   isSelected,
@@ -46,30 +57,54 @@ const VisitRectangle = memo(function VisitRectangle({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const bounds = useMemo(
-    () => visitToBounds(visit.latitude, visit.longitude),
+  const icon = useMemo(
+    () => createSquareIcon(color, isSelected),
+    [color, isSelected]
+  );
+
+  const position = useMemo(
+    () => [visit.latitude, visit.longitude] as [number, number],
     [visit.latitude, visit.longitude]
   );
 
   return (
-    <Rectangle
-      bounds={bounds}
-      pathOptions={{
-        color: isSelected ? '#ffffff' : color,
-        fillColor: color,
-        fillOpacity: isSelected ? 0.9 : 0.6,
-        weight: isSelected ? 3 : 1,
-      }}
+    <Marker
+      position={position}
+      icon={icon}
       eventHandlers={{ click: onClick }}
     />
   );
 });
+
+const PLANNED_COLOR = '#71717a';
+const PLANNED_OPACITY = 0.5;
+
+function createPlannedIcon(): L.DivIcon {
+  const size = MARKER_SIZE;
+  return L.divIcon({
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<div style="
+      width:${size}px;
+      height:${size}px;
+      background:${PLANNED_COLOR};
+      opacity:${PLANNED_OPACITY};
+      border:1px solid rgba(255,255,255,0.2);
+      border-radius:2px;
+      cursor:pointer;
+    "></div>`,
+  });
+}
+
+const plannedIcon = createPlannedIcon();
 
 interface DashboardMapProps {
   visits: Visit[];
   sessionColorMap: Map<string, string>;
   selectedVisitId: string | null;
   onSelectVisit: (id: string) => void;
+  plannedKnocks?: Visit[];
 }
 
 export default function DashboardMap({
@@ -77,28 +112,64 @@ export default function DashboardMap({
   sessionColorMap,
   selectedVisitId,
   onSelectVisit,
+  plannedKnocks = [],
 }: DashboardMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Wait until the container has layout dimensions before mounting Leaflet
+    const el = containerRef.current;
+    if (!el) return;
+    if (el.clientHeight > 0 && el.clientWidth > 0) {
+      setReady(true);
+      return;
+    }
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          setReady(true);
+          observer.disconnect();
+        }
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <MapContainer
-      center={PALO_ALTO_CENTER}
-      zoom={DEFAULT_ZOOM}
-      className="w-full h-full"
-      style={{ background: '#18181b' }}
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      />
-      <FitBounds visits={visits} />
-      {visits.map((visit) => (
-        <VisitRectangle
-          key={visit.id}
-          visit={visit}
-          color={sessionColorMap.get(visit.session_id) ?? '#3B82F6'}
-          isSelected={visit.id === selectedVisitId}
-          onClick={() => onSelectVisit(visit.id)}
-        />
-      ))}
-    </MapContainer>
+    <div ref={containerRef} className="w-full h-full" style={{ background: '#18181b' }}>
+      {ready && (
+        <MapContainer
+          center={PALO_ALTO_CENTER}
+          zoom={DEFAULT_ZOOM}
+          className="w-full h-full"
+          style={{ background: '#18181b' }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            className="map-tiles-dark"
+          />
+          <FitBounds visits={[...visits, ...plannedKnocks]} />
+          {visits.map((visit) => (
+            <VisitMarker
+              key={visit.id}
+              visit={visit}
+              color={sessionColorMap.get(visit.session_id) ?? '#3B82F6'}
+              isSelected={visit.id === selectedVisitId}
+              onClick={() => onSelectVisit(visit.id)}
+            />
+          ))}
+          {plannedKnocks.map((knock) => (
+            <Marker
+              key={`planned-${knock.id}`}
+              position={[knock.latitude, knock.longitude] as [number, number]}
+              icon={plannedIcon}
+            />
+          ))}
+        </MapContainer>
+      )}
+    </div>
   );
 }

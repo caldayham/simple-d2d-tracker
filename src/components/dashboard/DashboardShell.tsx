@@ -12,17 +12,26 @@ import { VisitList } from './VisitList';
 import { VisitDetail } from './VisitDetail';
 import { MobileVisitDetail } from './MobileVisitDetail';
 import { EditVisitModal } from './EditVisitModal';
+import { PlannedKnockList } from './PlannedKnockList';
 import { deleteVisit, updateVisit, createManualVisit } from '@/actions/visits';
 import { resolveAndUpdateAddress } from '@/actions/visits';
-import { createSession, endSession, deleteSession, updateSession, reorderSessions } from '@/actions/sessions';
-import { Plus, Footprints, DoorOpen } from 'lucide-react';
+import { createSession, endSession, deleteSession, updateSession, reorderSessions, createPlannedRoute, addPlannedKnocks } from '@/actions/sessions';
+import { findAddressesInArea } from '@/actions/geocoding';
+import { Plus, Footprints, DoorOpen, Map as MapIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import type { DrawingPoint } from '@/lib/drawing';
 
 const DashboardMap = dynamic(() => import('./DashboardMap'), {
   ssr: false,
   loading: () => <div className="flex-1 bg-zinc-900 animate-pulse" />,
 });
 
-type SidebarTab = 'runs' | 'knocks';
+const DrawingMap = dynamic(() => import('./DrawingMap'), {
+  ssr: false,
+  loading: () => <div className="flex-1 bg-zinc-900 animate-pulse" />,
+});
+
+type SidebarTab = 'runs' | 'knocks' | 'plan';
 
 interface DashboardShellProps {
   sessions: Session[];
@@ -45,6 +54,13 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
 
   // Runs state
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+
+  // Plan tab state
+  const [plannedKnocks, setPlannedKnocks] = useState<Array<{ latitude: number; longitude: number; address: string }>>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [routeName, setRouteName] = useState('');
+  const [isSavingRoute, setIsSavingRoute] = useState(false);
+  const [showPlanned, setShowPlanned] = useState(true);
 
   // Escape key: close modal → deselect item → deselect filter (priority order)
   useEffect(() => {
@@ -253,88 +269,184 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
     }
   }, [router]);
 
+  // --- Plan handlers ---
+  const handlePolygonComplete = useCallback(async (points: DrawingPoint[]) => {
+    setIsLoadingAddresses(true);
+    try {
+      const addresses = await findAddressesInArea(
+        points.map((p) => ({ lat: p.lat, lng: p.lng }))
+      );
+      setPlannedKnocks(addresses);
+      if (addresses.length === 0) {
+        toast.info('No houses found in the selected area. Try a larger area.');
+      }
+    } catch {
+      toast.error('Failed to find addresses in area');
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  }, []);
+
+  const handleSaveRoute = useCallback(async () => {
+    if (!routeName.trim() || plannedKnocks.length === 0) return;
+    setIsSavingRoute(true);
+    try {
+      const route = await createPlannedRoute(routeName.trim());
+      await addPlannedKnocks(
+        route.id,
+        plannedKnocks.map((k) => ({
+          latitude: k.latitude,
+          longitude: k.longitude,
+          address: k.address,
+        }))
+      );
+      toast.success(`Route "${routeName.trim()}" saved with ${plannedKnocks.length} knocks`);
+      setPlannedKnocks([]);
+      setRouteName('');
+      setSelectedRunId(route.id);
+      setActiveTab('runs');
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save route');
+    } finally {
+      setIsSavingRoute(false);
+    }
+  }, [routeName, plannedKnocks, router]);
+
+  const handleCancelPlan = useCallback(() => {
+    // User cancelled drawing — nothing to clean up
+  }, []);
+
+  // Planned knocks from existing planned routes (for map display)
+  const plannedVisits = useMemo(() => {
+    return visits.filter((v) => {
+      const session = sessions.find((s) => s.id === v.session_id);
+      return session && !session.started;
+    });
+  }, [visits, sessions]);
+
   // --- Tab bar component ---
-  function TabBar() {
-    return (
-      <div className="flex border-b border-zinc-800">
-        <button
-          onClick={() => setActiveTab('runs')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
-            activeTab === 'runs'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-zinc-400 hover:text-zinc-300'
-          }`}
-        >
-          <Footprints size={15} />
-          Runs
-        </button>
-        <button
-          onClick={() => setActiveTab('knocks')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
-            activeTab === 'knocks'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-zinc-400 hover:text-zinc-300'
-          }`}
-        >
-          <DoorOpen size={15} />
-          Knocks
-        </button>
-      </div>
-    );
-  }
+  const tabBar = (
+    <div className="flex border-b border-zinc-800">
+      <button
+        onClick={() => setActiveTab('runs')}
+        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+          activeTab === 'runs'
+            ? 'text-white border-b-2 border-blue-500'
+            : 'text-zinc-400 hover:text-zinc-300'
+        }`}
+      >
+        <Footprints size={15} />
+        Runs
+      </button>
+      <button
+        onClick={() => setActiveTab('knocks')}
+        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+          activeTab === 'knocks'
+            ? 'text-white border-b-2 border-blue-500'
+            : 'text-zinc-400 hover:text-zinc-300'
+        }`}
+      >
+        <DoorOpen size={15} />
+        Knocks
+      </button>
+      <button
+        onClick={() => setActiveTab('plan')}
+        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+          activeTab === 'plan'
+            ? 'text-white border-b-2 border-blue-500'
+            : 'text-zinc-400 hover:text-zinc-300'
+        }`}
+      >
+        <MapIcon size={15} />
+        Plan
+      </button>
+    </div>
+  );
 
   // --- Sidebar content based on active tab ---
-  function SidebarContent() {
-    if (activeTab === 'runs') {
-      return (
+  const sidebarContent = activeTab === 'runs' ? (
+    <>
+      <RunsList
+        sessions={sessions}
+        visits={visits}
+        sessionColorMap={sessionColorMap}
+        selectedRunId={selectedRunId}
+        onSelectRun={setSelectedRunId}
+        onReorder={handleReorderRun}
+      />
+      {selectedRun && (
+        <RunDetail
+          session={selectedRun}
+          visits={visits}
+          sessionColor={selectedRunColor}
+          onViewKnocks={handleViewKnocks}
+          onEdit={handleEditRun}
+          onDelete={handleDeleteRun}
+          onEndRun={handleEndRun}
+        />
+      )}
+    </>
+  ) : activeTab === 'plan' ? (
+    <>
+      {isLoadingAddresses ? (
+        <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">
+          Finding houses in area...
+        </div>
+      ) : plannedKnocks.length > 0 ? (
         <>
-          <RunsList
-            sessions={sessions}
-            visits={visits}
-            sessionColorMap={sessionColorMap}
-            selectedRunId={selectedRunId}
-            onSelectRun={setSelectedRunId}
-            onReorder={handleReorderRun}
+          <PlannedKnockList
+            knocks={plannedKnocks}
+            onClear={() => setPlannedKnocks([])}
           />
-          {selectedRun && (
-            <RunDetail
-              session={selectedRun}
-              visits={visits}
-              sessionColor={selectedRunColor}
-              onViewKnocks={handleViewKnocks}
-              onEdit={handleEditRun}
-              onDelete={handleDeleteRun}
-              onEndRun={handleEndRun}
+          {/* Save route form */}
+          <div className="border-t border-zinc-800 p-4 space-y-3">
+            <input
+              type="text"
+              value={routeName}
+              onChange={(e) => setRouteName(e.target.value)}
+              placeholder="Route name..."
+              className="w-full px-3 py-2 bg-zinc-800 text-white text-sm rounded-lg border border-zinc-700 focus:border-blue-500 focus:outline-none"
             />
-          )}
+            <button
+              onClick={handleSaveRoute}
+              disabled={!routeName.trim() || isSavingRoute}
+              className="w-full px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSavingRoute ? 'Saving...' : 'Save Route'}
+            </button>
+          </div>
         </>
-      );
-    }
-
-    return (
-      <>
-        <SessionFilter
-          sessions={sessions}
-          selectedSessionId={selectedSessionId}
-          onSelectSession={setSelectedSessionId}
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-6 text-center">
+          Draw an area on the map to find houses for your route
+        </div>
+      )}
+    </>
+  ) : (
+    <>
+      <SessionFilter
+        sessions={sessions}
+        selectedSessionId={selectedSessionId}
+        onSelectSession={setSelectedSessionId}
+      />
+      <VisitList
+        visits={filteredVisits}
+        sessionColorMap={sessionColorMap}
+        selectedVisitId={selectedVisitId}
+        onSelectVisit={setSelectedVisitId}
+        resultTags={resultTags}
+      />
+      {selectedVisit && (
+        <VisitDetail
+          visit={selectedVisit}
+          sessionColor={selectedVisitColor}
+          onEdit={handleEditVisit}
+          onDelete={handleDeleteVisit}
         />
-        <VisitList
-          visits={filteredVisits}
-          sessionColorMap={sessionColorMap}
-          selectedVisitId={selectedVisitId}
-          onSelectVisit={setSelectedVisitId}
-        />
-        {selectedVisit && (
-          <VisitDetail
-            visit={selectedVisit}
-            sessionColor={selectedVisitColor}
-            onEdit={handleEditVisit}
-            onDelete={handleDeleteVisit}
-          />
-        )}
-      </>
-    );
-  }
+      )}
+    </>
+  );
 
   if (visits.length === 0 && sessions.length === 0) {
     return (
@@ -369,61 +481,143 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
       {/* Desktop layout */}
       <div className="hidden md:flex flex-1">
         <div className="flex-1 relative">
-          <DashboardMap
-            visits={mapVisits}
-            sessionColorMap={sessionColorMap}
-            selectedVisitId={activeTab === 'knocks' ? selectedVisitId : null}
-            onSelectVisit={(id) => {
-              if (activeTab === 'knocks') setSelectedVisitId(id);
-            }}
-          />
-          <button
-            onClick={activeTab === 'knocks' ? handleAddVisit : handleAddRun}
-            className="absolute top-4 right-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg shadow-lg hover:bg-blue-500 transition-colors"
-          >
-            <Plus size={16} />
-            {activeTab === 'knocks' ? 'Add Knock' : 'Add Run'}
-          </button>
+          {activeTab === 'plan' ? (
+            <DrawingMap
+              onPolygonComplete={handlePolygonComplete}
+              onCancel={handleCancelPlan}
+            />
+          ) : (
+            <>
+              <DashboardMap
+                visits={mapVisits}
+                sessionColorMap={sessionColorMap}
+                selectedVisitId={activeTab === 'knocks' ? selectedVisitId : null}
+                onSelectVisit={(id) => {
+                  if (activeTab === 'knocks') setSelectedVisitId(id);
+                }}
+                plannedKnocks={showPlanned ? plannedVisits : []}
+              />
+              <button
+                onClick={activeTab === 'knocks' ? handleAddVisit : handleAddRun}
+                className="absolute top-4 right-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg shadow-lg hover:bg-blue-500 transition-colors"
+              >
+                <Plus size={16} />
+                {activeTab === 'knocks' ? 'Add Knock' : 'Add Run'}
+              </button>
+              {/* Planned route visibility toggle */}
+              {plannedVisits.length > 0 && (
+                <button
+                  onClick={() => setShowPlanned((v) => !v)}
+                  className={`absolute top-4 left-14 z-[1000] flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg shadow-lg transition-colors ${
+                    showPlanned
+                      ? 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                      : 'bg-zinc-800/80 text-zinc-500 hover:bg-zinc-700'
+                  }`}
+                  title={showPlanned ? 'Hide planned routes' : 'Show planned routes'}
+                >
+                  <div className="w-2.5 h-2.5 rounded-sm border border-zinc-500" style={{ backgroundColor: showPlanned ? '#71717a' : 'transparent' }} />
+                  Planned
+                </button>
+              )}
+            </>
+          )}
         </div>
         <div className="w-[400px] border-l border-zinc-800 flex flex-col overflow-hidden">
-          <TabBar />
-          <SidebarContent />
+          {tabBar}
+          {sidebarContent}
         </div>
       </div>
 
       {/* Mobile layout */}
       <div className="flex md:hidden flex-1 flex-col overflow-hidden">
-        <TabBar />
-        {activeTab === 'knocks' ? (
-          <div className="flex items-center gap-2 px-2 py-1">
-            <div className="flex-1">
-              <SessionFilter
-                sessions={sessions}
-                selectedSessionId={selectedSessionId}
-                onSelectSession={setSelectedSessionId}
+        {tabBar}
+        {activeTab === 'plan' ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 relative">
+              <DrawingMap
+                onPolygonComplete={handlePolygonComplete}
+                onCancel={handleCancelPlan}
               />
             </div>
-            <button
-              onClick={handleAddVisit}
-              className="shrink-0 p-2 bg-blue-600 text-white rounded-lg"
-              title="Add knock"
-            >
-              <Plus size={18} />
-            </button>
+            {(isLoadingAddresses || plannedKnocks.length > 0) && (
+              <div className="border-t border-zinc-700 bg-zinc-900 max-h-[40vh] overflow-y-auto">
+                {isLoadingAddresses ? (
+                  <div className="flex items-center justify-center py-6 text-zinc-400 text-sm">
+                    Finding houses in area...
+                  </div>
+                ) : (
+                  <>
+                    <PlannedKnockList
+                      knocks={plannedKnocks}
+                      onClear={() => setPlannedKnocks([])}
+                    />
+                    <div className="border-t border-zinc-800 p-3 space-y-2">
+                      <input
+                        type="text"
+                        value={routeName}
+                        onChange={(e) => setRouteName(e.target.value)}
+                        placeholder="Route name..."
+                        className="w-full px-3 py-2 bg-zinc-800 text-white text-sm rounded-lg border border-zinc-700 focus:border-blue-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={handleSaveRoute}
+                        disabled={!routeName.trim() || isSavingRoute}
+                        className="w-full px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isSavingRoute ? 'Saving...' : 'Save Route'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="flex items-center justify-end px-2 py-1">
-            <button
-              onClick={handleAddRun}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg"
-            >
-              <Plus size={16} />
-              Add Run
-            </button>
-          </div>
-        )}
-        {activeTab === 'runs' ? (
+        ) : activeTab === 'knocks' ? (
           <>
+            <div className="flex items-center gap-2 px-2 py-1">
+              <div className="flex-1">
+                <SessionFilter
+                  sessions={sessions}
+                  selectedSessionId={selectedSessionId}
+                  onSelectSession={setSelectedSessionId}
+                />
+              </div>
+              <button
+                onClick={handleAddVisit}
+                className="shrink-0 p-2 bg-blue-600 text-white rounded-lg"
+                title="Add knock"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+            <VisitList
+              visits={filteredVisits}
+              sessionColorMap={sessionColorMap}
+              selectedVisitId={selectedVisitId}
+              onSelectVisit={setSelectedVisitId}
+              resultTags={resultTags}
+            />
+            {selectedVisit && (
+              <MobileVisitDetail
+                visit={selectedVisit}
+                sessionColor={selectedVisitColor}
+                onClose={() => setSelectedVisitId(null)}
+                onEdit={handleEditVisit}
+                onDelete={handleDeleteVisit}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-end px-2 py-1">
+              <button
+                onClick={handleAddRun}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg"
+              >
+                <Plus size={16} />
+                Add Run
+              </button>
+            </div>
             <RunsList
               sessions={sessions}
               visits={visits}
@@ -441,24 +635,6 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
                 onEdit={handleEditRun}
                 onDelete={handleDeleteRun}
                 onClose={() => setSelectedRunId(null)}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            <VisitList
-              visits={filteredVisits}
-              sessionColorMap={sessionColorMap}
-              selectedVisitId={selectedVisitId}
-              onSelectVisit={setSelectedVisitId}
-            />
-            {selectedVisit && (
-              <MobileVisitDetail
-                visit={selectedVisit}
-                sessionColor={selectedVisitColor}
-                onClose={() => setSelectedVisitId(null)}
-                onEdit={handleEditVisit}
-                onDelete={handleDeleteVisit}
               />
             )}
           </>
