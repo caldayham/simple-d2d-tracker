@@ -1,53 +1,31 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: unknown
-last_updated: "2026-03-17T08:07:53.056Z"
+milestone: v1.1
+milestone_name: Planned Routes
+status: defining_requirements
+last_updated: "2026-03-18"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-16)
+See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** One-tap audio recording with automatic location capture — so every doorstep conversation is logged to the right house with zero friction while canvassing.
-**Current focus:** Phase 2 — Desktop Dashboard
+**Current focus:** Defining requirements for v1.1 — Planned Routes
 
 ## Current Position
 
-Phase: 2 of 2 (Desktop Dashboard)
-Plan: 3 of 3 in current phase
-Status: Executing phase
-Last activity: 2026-03-19 - Completed quick task 1: Add gender, age range, name, and occupancy fields to knocks
-
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 7
-- Average duration: 2min
-- Total execution time: 13min
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01 | 4/4 | 9min | 2min |
-| 02 | 3/3 | 4min | 1.3min |
-
-**Recent Trend:**
-- Last 5 plans: 1min, 2min, 2min, 1min, 1min
-- Trend: Consistent
-| Phase 02 P02 | 1min | 1 tasks | 1 files |
-| Phase 02 P03 | 1min | 2 tasks | 4 files |
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-18 — Milestone v1.1 started
 
 ## Accumulated Context
 
@@ -70,9 +48,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- Nominatim address quality for Palo Alto residential streets is unverified — test early in Phase 1; Geoapify (3,000 free req/day) is ready fallback
-- Wake Lock API behavior in Safari PWA context has edge cases when app is backgrounded (not screen-locked) — validate on physical hardware in Phase 1
-- Supabase free tier (1GB storage) will not survive sustained canvassing — build storage usage tracking in Phase 1 and plan Pro upgrade ($25/mo) before first canvassing week
+- Nominatim address quality for Palo Alto residential streets is unverified — test early; Geoapify (3,000 free req/day) is ready fallback
+- Wake Lock API behavior in Safari PWA context has edge cases when app is backgrounded (not screen-locked)
+- Supabase free tier (1GB storage) will not survive sustained canvassing — plan Pro upgrade ($25/mo) before first canvassing week
+- Address auto-population within drawn polygons requires a geocoding/address API that returns individual house addresses — needs research
 
 ### Quick Tasks Completed
 
@@ -82,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17
-Stopped at: Completed 02-03-PLAN.md (right panel components) -- Phase 2 complete
+Last session: 2026-03-18
+Stopped at: Starting milestone v1.1 — Planned Routes
 Resume file: None

@@ -12,30 +12,54 @@ One-tap audio recording with automatic location capture — so every doorstep co
 
 ### Validated
 
-(None yet — ship to validate)
+<!-- Shipped and confirmed valuable. -->
+
+- ✓ Start/stop canvassing sessions that group house visits — v1.0
+- ✓ One-tap audio recording with automatic GPS location capture — v1.0
+- ✓ Auto-associate recordings with nearest house address (reverse geocoding) — v1.0
+- ✓ Upload audio files to cloud storage (Supabase Storage) — v1.0
+- ✓ Mobile-optimized UI for in-field use on iPhone — v1.0
+- ✓ Desktop dashboard with map view (pins for visited houses) — v1.0
+- ✓ Desktop dashboard with list view (chronological, toggle with map) — v1.0
+- ✓ Click any house to see details and play back audio — v1.0
+- ✓ Single user, no auth complexity needed (simple login) — v1.0
 
 ### Active
 
-- [ ] Start/stop canvassing sessions that group house visits
-- [ ] One-tap audio recording with automatic GPS location capture
-- [ ] Auto-associate recordings with nearest house address (reverse geocoding)
-- [ ] Upload audio files to cloud storage (Supabase Storage)
-- [ ] Mobile-optimized UI for in-field use on iPhone
-- [ ] Desktop dashboard with map view (pins for visited houses)
-- [ ] Desktop dashboard with list view (chronological, toggle with map)
-- [ ] Click any house to see details and play back audio
-- [ ] On-demand audio transcription from dashboard
-- [ ] Single user, no auth complexity needed (simple login)
+<!-- Current scope: v1.1 — Planned Routes -->
+
+- [ ] Planning tab on dashboard for creating planned routes
+- [ ] Draw points/polygons on map to define canvassing areas
+- [ ] Auto-populate house addresses within drawn area from geocoding API
+- [ ] Auto-sort knocks into walking order (down one side, back the other)
+- [ ] Manual reorder of planned knocks after auto-sort
+- [ ] Planned route stats (door count, estimated time at 4min/door)
+- [ ] Mobile: load and execute a planned route
+- [ ] Mobile: guided knock-by-knock execution with current house display
+- [ ] Mobile: mini map showing position and upcoming houses
+- [ ] Mobile: progress indicator (doors done/remaining, elapsed time)
+- [ ] Planned knocks stored in existing visits/knocks data model
+- [ ] Unvisited planned knocks persist as markers until executed
 
 ### Out of Scope
 
 - Multi-user / team features — just one user for now
-- Automated data extraction (name, notes, follow-up) — future enhancement, manual for now
-- Route optimization or suggested walking paths
+- Automated data extraction (name, notes, follow-up) — deferred to v1.2+
+- On-demand audio transcription — deferred to v1.2+
 - CRM features (pipeline stages, deal tracking)
 - Native iOS app — using mobile web (PWA if possible)
 - Real-time transcription during recording
 - AI conversation analysis / pattern detection — future, after audio corpus is built
+
+## Current Milestone: v1.1 Planned Routes
+
+**Goal:** Enable pre-planned canvassing runs — scout areas on a map, auto-generate house knock lists, and execute routes with guided mobile UI.
+
+**Target features:**
+- Planning tab with polygon/point drawing and address auto-population
+- Smart route ordering with manual adjustment
+- Guided mobile execution with mini map and progress tracking
+- Route stats (door count, estimated time)
 
 ## Context
 
@@ -68,4 +92,4 @@ One-tap audio recording with automatic location capture — so every doorstep co
 | Transcription on-demand, not automatic | Saves cost, preserves simplicity, user processes when they need to | — Pending |
 
 ---
-*Last updated: 2026-03-16 after initialization*
+*Last updated: 2026-03-18 after milestone v1.1 start*
