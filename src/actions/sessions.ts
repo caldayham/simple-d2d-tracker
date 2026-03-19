@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type { Session } from '@/lib/types';
+import { sortKnocksWalkingOrder } from '@/lib/route-sort';
 
 export async function createSession(lat?: number, lng?: number): Promise<Session> {
   const supabase = await createClient();
@@ -153,8 +154,11 @@ export async function addPlannedKnocks(
     throw new Error('Session not found or access denied');
   }
 
+  // Sort knocks into walking order before inserting
+  const sortedKnocks = sortKnocksWalkingOrder(knocks);
+
   // Batch insert planned knocks as visit records with null audio/recorded_at
-  const visits = knocks.map((knock) => ({
+  const visits = sortedKnocks.map((knock, index) => ({
     session_id: sessionId,
     latitude: knock.latitude,
     longitude: knock.longitude,
@@ -164,6 +168,7 @@ export async function addPlannedKnocks(
     audio_duration_seconds: null,
     recorded_at: null,
     manually_added: false,
+    sort_order: index,
   }));
 
   const { error } = await supabase.from('visits').insert(visits);

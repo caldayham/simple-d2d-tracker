@@ -141,6 +141,26 @@ export async function deleteVisit(visitId: string): Promise<void> {
   if (error) throw new Error(`Failed to delete visit: ${error.message}`);
 }
 
+export async function reorderKnocks(
+  orderedIds: string[]
+): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const updates = orderedIds.map((id, index) =>
+    supabase
+      .from('visits')
+      .update({ sort_order: index })
+      .eq('id', id)
+  );
+
+  await Promise.all(updates);
+}
+
 export async function createManualVisit(data: {
   session_id: string;
   latitude: number;

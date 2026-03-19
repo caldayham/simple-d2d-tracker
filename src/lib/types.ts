@@ -26,6 +26,7 @@ export type Visit = {
   age_range: string | null;
   occupancy: string | null;
   manually_added: boolean;
+  sort_order: number | null;
   recorded_at: string | null;
   created_at: string;
 };
