@@ -36,9 +36,9 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 
 ### Route Planning
 
-- [ ] **PLAN-01**: User can draw points and lines on the dashboard map to define a canvassing area
-- [ ] **PLAN-02**: User can connect points into a polygon to select a neighborhood boundary
-- [ ] **PLAN-03**: App auto-populates house addresses within the drawn area from a geocoding API
+- [x] **PLAN-01**: User can draw points and lines on the dashboard map to define a canvassing area
+- [x] **PLAN-02**: User can connect points into a polygon to select a neighborhood boundary
+- [x] **PLAN-03**: App auto-populates house addresses within the drawn area from a geocoding API
 - [ ] **PLAN-04**: App auto-sorts populated knocks into a walking order (down one side of street, back on the other)
 - [ ] **PLAN-05**: User can manually reorder knocks after auto-sort by dragging
 - [ ] **PLAN-06**: User can save a planned route with a name
@@ -46,10 +46,10 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 
 ### Route Data Model
 
-- [ ] **DATA-01**: Planned routes and executed runs share the same database structure (sessions table)
-- [ ] **DATA-02**: Planned knocks are stored as visit/knock records with null audio, time, and date fields
-- [ ] **DATA-03**: Session has a "started" flag — false for planned routes, true once execution begins
-- [ ] **DATA-04**: Planned knocks persist as unvisited markers until executed
+- [x] **DATA-01**: Planned routes and executed runs share the same database structure (sessions table)
+- [x] **DATA-02**: Planned knocks are stored as visit/knock records with null audio, time, and date fields
+- [x] **DATA-03**: Session has a "started" flag — false for planned routes, true once execution begins
+- [x] **DATA-04**: Planned knocks persist as unvisited markers until executed
 
 ### Route Execution (Mobile)
 
@@ -117,13 +117,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-04 | Phase 2 | Complete |
 | DASH-05 | Phase 2 | Complete |
 | DASH-06 | Phase 2 | Complete |
-| DATA-01 | Phase 3 | Pending |
-| DATA-02 | Phase 3 | Pending |
-| DATA-03 | Phase 3 | Pending |
-| DATA-04 | Phase 3 | Pending |
-| PLAN-01 | Phase 3 | Pending |
-| PLAN-02 | Phase 3 | Pending |
-| PLAN-03 | Phase 3 | Pending |
+| DATA-01 | Phase 3 | Complete |
+| DATA-02 | Phase 3 | Complete |
+| DATA-03 | Phase 3 | Complete |
+| DATA-04 | Phase 3 | Complete |
+| PLAN-01 | Phase 3 | Complete |
+| PLAN-02 | Phase 3 | Complete |
+| PLAN-03 | Phase 3 | Complete |
 | PLAN-04 | Phase 4 | Pending |
 | PLAN-05 | Phase 4 | Pending |
 | PLAN-06 | Phase 4 | Pending |

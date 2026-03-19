@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.1
+milestone_name: Planned Routes
+status: unknown
+last_updated: "2026-03-19T05:22:27.103Z"
+progress:
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 10
+---
+
 # Project State
 
 ## Project Reference
@@ -5,21 +18,21 @@
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** One-tap audio recording with automatic location capture — so every doorstep conversation is logged to the right house with zero friction while canvassing.
-**Current focus:** Phase 3 — Route Data & Area Selection (v1.1 Planned Routes)
+**Current focus:** Phase 4 — Route Building (v1.1 Planned Routes)
 
 ## Current Position
 
-Phase: 3 of 5 (Route Data & Area Selection)
+Phase: 4 of 5 (Route Building)
 Plan: Ready to plan
-Status: Ready to plan
-Last activity: 2026-03-18 — Roadmap created for v1.1 milestone
+Status: Phase 3 complete, ready to plan Phase 4
+Last activity: 2026-03-18 — Phase 3 Route Data & Area Selection complete
 
-Progress: [██████░░░░] 58% (v1.0 complete, v1.1 not started)
+Progress: [████████░░] 75% (v1.0 complete, Phase 3 done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (v1.0)
+- Total plans completed: 10 (7 v1.0 + 3 Phase 3)
 - Average duration: —
 - Total execution time: —
 
@@ -29,6 +42,7 @@ Progress: [██████░░░░] 58% (v1.0 complete, v1.1 not started)
 |-------|-------|-------|----------|
 | 1. Recording Pipeline | 4 | — | — |
 | 2. Desktop Dashboard | 3 | — | — |
+| 3. Route Data & Area Selection | 3 | ~24 min | ~8 min |
 
 *Updated after each plan completion*
 
@@ -45,6 +59,9 @@ Recent decisions affecting current work:
 - Reverse geocoding is non-blocking: coordinates saved immediately, address resolves async via Nominatim
 - [Phase 02]: Used CartoDB dark_all tiles and 0.00005-degree rectangle offset for house-sized markers
 - [Phase 02]: Audio URLs fetched on demand (not pre-loaded) to minimize Supabase signed URL generation
+- [Phase 03]: Dual-use sessions: started=false for planned routes, started=true for executed runs
+- [Phase 03]: Overpass API for area-based house queries (spatial queries vs Nominatim single-address)
+- [Phase 03]: Custom drawing tool using react-leaflet primitives (no external drawing library)
 
 ### Pending Todos
 
@@ -53,7 +70,7 @@ None yet.
 ### Blockers/Concerns
 
 - Nominatim address quality for Palo Alto residential streets is unverified — test early; Geoapify (3,000 free req/day) is ready fallback
-- Address auto-population within drawn polygons requires a geocoding/address API that returns individual house addresses — needs research
+- Address auto-population solved via Overpass API (OpenStreetMap spatial queries)
 - Supabase free tier (1GB storage) will not survive sustained canvassing — plan Pro upgrade ($25/mo) before first canvassing week
 
 ### Quick Tasks Completed
@@ -65,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-18
-Stopped at: Roadmap created for v1.1 — ready to plan Phase 3
+Stopped at: Phase 3 complete — ready to plan Phase 4
 Resume file: None
