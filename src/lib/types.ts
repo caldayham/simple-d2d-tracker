@@ -5,6 +5,7 @@ export type Session = {
   started_at: string;
   ended_at: string | null;
   notes: string | null;
+  sort_order: number | null;
 };
 
 export type Visit = {
@@ -19,16 +20,24 @@ export type Visit = {
   transcript: string | null;
   notes: string | null;
   result: string | null;
+  contact_name: string | null;
+  gender: string | null;
+  age_range: string | null;
+  occupancy: string | null;
+  manually_added: boolean;
   recorded_at: string;
   created_at: string;
 };
 
-export const VISIT_RESULTS = [
-  'Interested',
-  'Not Interested',
-  'Not Home',
-  'Booked Consult',
-  'Come Back Later',
-] as const;
+export type ResultTag = {
+  name: string;
+  color: string;
+};
 
-export type VisitResult = (typeof VISIT_RESULTS)[number];
+export const DEFAULT_RESULT_TAGS: ResultTag[] = [
+  { name: 'Interested', color: '#16a34a' },
+  { name: 'Not Interested', color: '#71717a' },
+  { name: 'Not Home', color: '#ca8a04' },
+  { name: 'Booked Consult', color: '#2563eb' },
+  { name: 'Come Back Later', color: '#f97316' },
+];
