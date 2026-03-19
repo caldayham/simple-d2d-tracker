@@ -73,7 +73,12 @@ Plans:
   2. After drawing a polygon, house addresses within the area appear as a list of planned knocks
   3. Planned knocks appear as distinct markers on the dashboard map (visually different from executed visits)
   4. Planned routes use the existing sessions/visits tables — sessions have a "started" flag (false for planned, true for executed) and planned knocks are visit records with null audio/time fields
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 03-01: Data model for planned routes (migration, types, server actions)
+- [ ] 03-02: Map drawing tools (pen tool, polygon drawing, live preview)
+- [ ] 03-03: Address population and dashboard integration (Overpass API, planned knock markers, plan tab)
 
 ### Phase 4: Route Building
 **Goal**: User can refine a populated route into an optimized, named plan ready for execution
@@ -106,6 +111,6 @@ Phases execute in numeric order: 3 → 4 → 5
 |-------|-----------|----------------|--------|-----------|
 | 1. Recording Pipeline | v1.0 | 4/4 | Complete | 2026-03-17 |
 | 2. Desktop Dashboard | v1.0 | 3/3 | Complete | 2026-03-17 |
-| 3. Route Data & Area Selection | v1.1 | 0/TBD | Not started | - |
+| 3. Route Data & Area Selection | v1.1 | 0/3 | Planned | - |
 | 4. Route Building | v1.1 | 0/TBD | Not started | - |
 | 5. Guided Execution | v1.1 | 0/TBD | Not started | - |
