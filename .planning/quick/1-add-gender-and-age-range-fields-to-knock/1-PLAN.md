@@ -100,13 +100,14 @@ interface ResultPickerProps {
    - `ALTER TABLE visits ADD COLUMN contact_name TEXT;`
    - `ALTER TABLE visits ADD COLUMN gender TEXT CHECK (gender IN ('Male', 'Female', 'Unknown'));`
    - `ALTER TABLE visits ADD COLUMN age_range TEXT CHECK (age_range IN ('<30', '30-50', '50-70', '>70'));`
-   All three columns are nullable (optional fields).
+   - `ALTER TABLE visits ADD COLUMN occupancy TEXT CHECK (occupancy IN ('Homeowner', 'Renter', 'Unknown'));`
+   All four columns are nullable (optional fields).
 
-2. Update `src/lib/types.ts` Visit type: add `contact_name: string | null`, `gender: string | null`, `age_range: string | null` fields.
+2. Update `src/lib/types.ts` Visit type: add `contact_name: string | null`, `gender: string | null`, `age_range: string | null`, `occupancy: string | null` fields.
 
 3. Update `src/actions/visits.ts`:
-   - Modify `updateVisitResult` to accept an optional 4th parameter `demographics?: { contact_name?: string; gender?: string; age_range?: string }`. When provided, include these fields in the update object alongside result and notes.
-   - Also update `createManualVisit` data parameter to accept optional `contact_name`, `gender`, `age_range` and pass them through to the insert.
+   - Modify `updateVisitResult` to accept an optional 4th parameter `demographics?: { contact_name?: string; gender?: string; age_range?: string; occupancy?: string }`. When provided, include these fields in the update object alongside result and notes.
+   - Also update `createManualVisit` data parameter to accept optional `contact_name`, `gender`, `age_range`, `occupancy` and pass them through to the insert.
   </action>
   <verify>
     <automated>npx tsc --noEmit 2>&1 | head -20</automated>

@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Mic, LayoutDashboard } from 'lucide-react';
+import { Mic, LayoutDashboard, Settings } from 'lucide-react';
 
 const tabs = [
   { href: '/record', label: 'Record', icon: Mic },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ] as const;
 
 export function TabNav() {
