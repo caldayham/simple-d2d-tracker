@@ -3,7 +3,9 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Session, Visit } from '@/lib/types';
 
-export async function getDashboardData(): Promise<{
+export async function getDashboardData(options?: {
+  started?: boolean;
+}): Promise<{
   sessions: Session[];
   visits: Visit[];
 }> {
@@ -14,17 +16,33 @@ export async function getDashboardData(): Promise<{
 
   if (!user) throw new Error('Not authenticated');
 
+  let sessionsQuery = supabase
+    .from('sessions')
+    .select('*')
+    .eq('user_id', user.id);
+
+  if (options?.started !== undefined) {
+    sessionsQuery = sessionsQuery.eq('started', options.started);
+  }
+
+  sessionsQuery = sessionsQuery
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('started_at', { ascending: true });
+
+  let visitsQuery = supabase
+    .from('visits')
+    .select('*, sessions!inner(user_id, started)')
+    .eq('sessions.user_id', user.id);
+
+  if (options?.started !== undefined) {
+    visitsQuery = visitsQuery.eq('sessions.started', options.started);
+  }
+
+  visitsQuery = visitsQuery.order('recorded_at', { ascending: false, nullsFirst: true });
+
   const [sessionsResult, visitsResult] = await Promise.all([
-    supabase
-      .from('sessions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('started_at', { ascending: false }),
-    supabase
-      .from('visits')
-      .select('*, sessions!inner(user_id)')
-      .eq('sessions.user_id', user.id)
-      .order('recorded_at', { ascending: false }),
+    sessionsQuery,
+    visitsQuery,
   ]);
 
   if (sessionsResult.error)
