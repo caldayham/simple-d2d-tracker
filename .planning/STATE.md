@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Planned Routes
 status: in-progress
-last_updated: "2026-03-19T06:48:31Z"
+last_updated: "2026-03-19T06:53:07Z"
 progress:
   total_phases: 3
   completed_phases: 3
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -22,17 +22,17 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 
 ## Current Position
 
-Phase: 4 of 5 (Route Building)
-Plan: 2 of 2 (04-02 next)
-Status: Phase 4 in progress, plan 01 complete
-Last activity: 2026-03-19 — Completed 04-01 walking order sort and visit ordering
+Phase: 4 of 5 (Route Building) -- COMPLETE
+Plan: 2 of 2 (04-02 complete)
+Status: Phase 4 complete, all plans done
+Last activity: 2026-03-19 — Completed 04-02 route building UI (drag reorder, route stats)
 
-Progress: [████████░░] 80% (v1.0 complete, Phase 3 done, Phase 4 plan 1 done)
+Progress: [██████████] 100% (v1.0 complete, Phase 3 done, Phase 4 done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10 (7 v1.0 + 3 Phase 3)
+- Total plans completed: 12 (7 v1.0 + 3 Phase 3 + 2 Phase 4)
 - Average duration: —
 - Total execution time: —
 
@@ -43,6 +43,7 @@ Progress: [████████░░] 80% (v1.0 complete, Phase 3 done, Pha
 | 1. Recording Pipeline | 4 | — | — |
 | 2. Desktop Dashboard | 3 | — | — |
 | 3. Route Data & Area Selection | 3 | ~24 min | ~8 min |
+| 4. Route Building | 2 | ~5 min | ~2.5 min |
 
 *Updated after each plan completion*
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Custom drawing tool using react-leaflet primitives (no external drawing library)
 - [Phase 04]: Serpentine walking sort: odd ascending, even descending per street, streets ordered north-to-south
 - [Phase 04]: sort_order nullable on visits so existing visits unaffected, only planned knocks use it
+- [Phase 04]: Native HTML drag-and-drop for knock reordering (no external library)
+- [Phase 04]: Dual-mode PlannedKnockList component accepts unsaved knocks or saved Visit[] via optional prop groups
 
 ### Pending Todos
 
@@ -84,5 +87,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-19
-Stopped at: Completed 04-01-PLAN.md — ready to execute 04-02
+Stopped at: Completed 04-02-PLAN.md — Phase 4 complete
 Resume file: None

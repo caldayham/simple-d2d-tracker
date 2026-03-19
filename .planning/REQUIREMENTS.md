@@ -40,9 +40,9 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 - [x] **PLAN-02**: User can connect points into a polygon to select a neighborhood boundary
 - [x] **PLAN-03**: App auto-populates house addresses within the drawn area from a geocoding API
 - [x] **PLAN-04**: App auto-sorts populated knocks into a walking order (down one side of street, back on the other)
-- [ ] **PLAN-05**: User can manually reorder knocks after auto-sort by dragging
-- [ ] **PLAN-06**: User can save a planned route with a name
-- [ ] **PLAN-07**: Planned route displays stats: door count and estimated time (4min/door)
+- [x] **PLAN-05**: User can manually reorder knocks after auto-sort by dragging
+- [x] **PLAN-06**: User can save a planned route with a name
+- [x] **PLAN-07**: Planned route displays stats: door count and estimated time (4min/door)
 
 ### Route Data Model
 
@@ -125,9 +125,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAN-02 | Phase 3 | Complete |
 | PLAN-03 | Phase 3 | Complete |
 | PLAN-04 | Phase 4 | Complete |
-| PLAN-05 | Phase 4 | Pending |
-| PLAN-06 | Phase 4 | Pending |
-| PLAN-07 | Phase 4 | Pending |
+| PLAN-05 | Phase 4 | Complete |
+| PLAN-06 | Phase 4 | Complete |
+| PLAN-07 | Phase 4 | Complete |
 | EXEC-01 | Phase 5 | Pending |
 | EXEC-02 | Phase 5 | Pending |
 | EXEC-03 | Phase 5 | Pending |
