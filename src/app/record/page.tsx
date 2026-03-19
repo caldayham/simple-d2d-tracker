@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -10,12 +10,15 @@ import { createSignedUploadUrl } from '@/actions/storage';
 import { createVisit, resolveAndUpdateAddress, updateVisitResult } from '@/actions/visits';
 import { createClient } from '@/lib/supabase/client';
 import { getFileExtension } from '@/lib/audio';
-import type { Session } from '@/lib/types';
+import { getResultTags } from '@/actions/settings';
+import type { Session, ResultTag } from '@/lib/types';
+import { DEFAULT_RESULT_TAGS } from '@/lib/types';
 import RecordButton from '@/components/recording/RecordButton';
 import SessionControls from '@/components/recording/SessionControls';
 import GpsStatus from '@/components/recording/GpsStatus';
 import UploadStatus from '@/components/recording/UploadStatus';
 import ResultPicker from '@/components/recording/ResultPicker';
+import type { Demographics } from '@/components/recording/ResultPicker';
 import AddressEditor from '@/components/recording/AddressEditor';
 
 const LocationMap = dynamic(() => import('@/components/recording/LocationMap'), {
@@ -44,7 +47,14 @@ export default function RecordPage() {
   const [sessionVisits, setSessionVisits] = useState<SessionVisit[]>([]);
   const [pendingResultVisitId, setPendingResultVisitId] = useState<string | null>(null);
   const [isSubmittingResult, setIsSubmittingResult] = useState(false);
-  const pendingResultRef = useRef<{ tempId: string; result: string; notes?: string } | null>(null);
+  const [resultTags, setResultTags] = useState<ResultTag[]>([]);
+  const pendingResultRef = useRef<{ tempId: string; result: string; notes?: string; demographics?: Demographics } | null>(null);
+
+  useEffect(() => {
+    getResultTags().then(setResultTags).catch(() => {
+      setResultTags(DEFAULT_RESULT_TAGS);
+    });
+  }, []);
 
   const {
     isRecording,
@@ -217,9 +227,9 @@ export default function RecordPage() {
 
         // Apply any result/notes that were selected while upload was in progress
         if (pendingResultRef.current?.tempId === tempId) {
-          const { result: pendingResult, notes: pendingNotes } = pendingResultRef.current;
+          const { result: pendingResult, notes: pendingNotes, demographics: pendingDemographics } = pendingResultRef.current;
           pendingResultRef.current = null;
-          updateVisitResult(visit.id, pendingResult, pendingNotes).catch((err) => {
+          updateVisitResult(visit.id, pendingResult, pendingNotes, pendingDemographics).catch((err) => {
             toast.error('Failed to save result');
             console.error(err);
           });
@@ -254,7 +264,7 @@ export default function RecordPage() {
     }
   }, [activeSession, position, stopRecording, currentAddress]);
 
-  const handleResultSelect = useCallback(async (result: string, notes?: string) => {
+  const handleResultSelect = useCallback(async (result: string, notes?: string, demographics?: Demographics) => {
     if (!pendingResultVisitId) return;
     setIsSubmittingResult(true);
 
@@ -271,11 +281,11 @@ export default function RecordPage() {
 
     if (visitId.startsWith('temp-')) {
       // Upload still in progress — stash result to apply when real ID arrives
-      pendingResultRef.current = { tempId: visitId, result, notes };
+      pendingResultRef.current = { tempId: visitId, result, notes, demographics };
       setIsSubmittingResult(false);
     } else {
       try {
-        await updateVisitResult(visitId, result, notes);
+        await updateVisitResult(visitId, result, notes, demographics);
       } catch (err) {
         toast.error('Failed to save result');
         console.error(err);
@@ -334,6 +344,7 @@ export default function RecordPage() {
                 </p>
               </div>
               <ResultPicker
+                tags={resultTags}
                 onSelect={handleResultSelect}
                 isSubmitting={isSubmittingResult}
               />
