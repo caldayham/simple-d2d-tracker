@@ -89,7 +89,11 @@ Plans:
   2. User can drag to reorder knocks after the auto-sort
   3. User can save a route with a name and see it in a list of saved routes
   4. Saved route displays door count and estimated time (calculated at 4 minutes per door)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 04-01: Walking order algorithm, visit sort_order migration, reorder server actions
+- [ ] 04-02: Dashboard UI — drag-reorderable knock list, auto-sort integration, route stats display
 
 ### Phase 5: Guided Execution
 **Goal**: User can load a planned route on mobile and execute it knock-by-knock with navigation and progress tracking
@@ -112,5 +116,5 @@ Phases execute in numeric order: 3 → 4 → 5
 | 1. Recording Pipeline | v1.0 | 4/4 | Complete | 2026-03-17 |
 | 2. Desktop Dashboard | v1.0 | 3/3 | Complete | 2026-03-17 |
 | 3. Route Data & Area Selection | v1.1 | 0/3 | Planned | - |
-| 4. Route Building | v1.1 | 0/TBD | Not started | - |
+| 4. Route Building | v1.1 | 1/2 | In Progress | - |
 | 5. Guided Execution | v1.1 | 0/TBD | Not started | - |

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Planned Routes
-status: unknown
-last_updated: "2026-03-19T05:22:27.103Z"
+status: in-progress
+last_updated: "2026-03-19T06:48:31Z"
 progress:
   total_phases: 3
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 12
+  completed_plans: 11
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 4 of 5 (Route Building)
-Plan: Ready to plan
-Status: Phase 3 complete, ready to plan Phase 4
-Last activity: 2026-03-18 — Phase 3 Route Data & Area Selection complete
+Plan: 2 of 2 (04-02 next)
+Status: Phase 4 in progress, plan 01 complete
+Last activity: 2026-03-19 — Completed 04-01 walking order sort and visit ordering
 
-Progress: [████████░░] 75% (v1.0 complete, Phase 3 done)
+Progress: [████████░░] 80% (v1.0 complete, Phase 3 done, Phase 4 plan 1 done)
 
 ## Performance Metrics
 
@@ -62,6 +62,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Dual-use sessions: started=false for planned routes, started=true for executed runs
 - [Phase 03]: Overpass API for area-based house queries (spatial queries vs Nominatim single-address)
 - [Phase 03]: Custom drawing tool using react-leaflet primitives (no external drawing library)
+- [Phase 04]: Serpentine walking sort: odd ascending, even descending per street, streets ordered north-to-south
+- [Phase 04]: sort_order nullable on visits so existing visits unaffected, only planned knocks use it
 
 ### Pending Todos
 
@@ -81,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18
-Stopped at: Phase 3 complete — ready to plan Phase 4
+Last session: 2026-03-19
+Stopped at: Completed 04-01-PLAN.md — ready to execute 04-02
 Resume file: None
