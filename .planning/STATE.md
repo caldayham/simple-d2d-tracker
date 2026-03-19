@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 Phase: 2 of 2 (Desktop Dashboard)
 Plan: 3 of 3 in current phase
 Status: Executing phase
-Last activity: 2026-03-17 — Completed 02-03-PLAN.md
+Last activity: 2026-03-19 - Completed quick task 1: Add gender, age range, name, and occupancy fields to knocks
 
 Progress: [██████████] 100%
 
@@ -73,6 +73,12 @@ None yet.
 - Nominatim address quality for Palo Alto residential streets is unverified — test early in Phase 1; Geoapify (3,000 free req/day) is ready fallback
 - Wake Lock API behavior in Safari PWA context has edge cases when app is backgrounded (not screen-locked) — validate on physical hardware in Phase 1
 - Supabase free tier (1GB storage) will not survive sustained canvassing — build storage usage tracking in Phase 1 and plan Pro upgrade ($25/mo) before first canvassing week
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Add gender, age range, name, and occupancy fields to knocks | 2026-03-19 | 6c2eef7 | [1-add-gender-and-age-range-fields-to-knock](./quick/1-add-gender-and-age-range-fields-to-knock/) |
 
 ## Session Continuity
 
