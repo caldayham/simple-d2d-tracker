@@ -17,6 +17,7 @@ import { deleteVisit, updateVisit, createManualVisit } from '@/actions/visits';
 import { resolveAndUpdateAddress } from '@/actions/visits';
 import { createSession, endSession, deleteSession, updateSession, reorderSessions, createPlannedRoute, addPlannedKnocks } from '@/actions/sessions';
 import { findAddressesInArea } from '@/actions/geocoding';
+import { sortKnocksWalkingOrder } from '@/lib/route-sort';
 import { Plus, Footprints, DoorOpen, Map as MapIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DrawingPoint } from '@/lib/drawing';
@@ -276,7 +277,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
       const addresses = await findAddressesInArea(
         points.map((p) => ({ lat: p.lat, lng: p.lng }))
       );
-      setPlannedKnocks(addresses);
+      setPlannedKnocks(sortKnocksWalkingOrder(addresses));
       if (addresses.length === 0) {
         toast.info('No houses found in the selected area. Try a larger area.');
       }
@@ -398,6 +399,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
           <PlannedKnockList
             knocks={plannedKnocks}
             onClear={() => setPlannedKnocks([])}
+            onReorder={setPlannedKnocks}
           />
           {/* Save route form */}
           <div className="border-t border-zinc-800 p-4 space-y-3">
@@ -550,6 +552,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
                     <PlannedKnockList
                       knocks={plannedKnocks}
                       onClear={() => setPlannedKnocks([])}
+                      onReorder={setPlannedKnocks}
                     />
                     <div className="border-t border-zinc-800 p-3 space-y-2">
                       <input

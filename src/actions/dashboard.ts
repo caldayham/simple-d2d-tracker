@@ -38,7 +38,9 @@ export async function getDashboardData(options?: {
     visitsQuery = visitsQuery.eq('sessions.started', options.started);
   }
 
-  visitsQuery = visitsQuery.order('recorded_at', { ascending: false, nullsFirst: true });
+  visitsQuery = visitsQuery
+    .order('sort_order', { ascending: true, nullsFirst: true })
+    .order('created_at', { ascending: true });
 
   const [sessionsResult, visitsResult] = await Promise.all([
     sessionsQuery,
