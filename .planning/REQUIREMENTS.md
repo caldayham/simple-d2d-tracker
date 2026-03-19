@@ -3,9 +3,7 @@
 **Defined:** 2026-03-16
 **Core Value:** One-tap audio recording with automatic location capture — so every doorstep conversation is logged to the right house with zero friction while canvassing.
 
-## v1 Requirements
-
-Requirements for initial release. Each maps to roadmap phases.
+## v1.0 Requirements (Complete)
 
 ### Recording & Capture
 
@@ -31,6 +29,38 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DASH-04**: Click any house to see detail view with address, timestamp, and audio playback
 - [x] **DASH-05**: Filter map and list by canvassing session
 - [x] **DASH-06**: Desktop-optimized layout (map + list + detail)
+
+## v1.1 Requirements — Planned Routes
+
+Requirements for milestone v1.1. Each maps to roadmap phases.
+
+### Route Planning
+
+- [ ] **PLAN-01**: User can draw points and lines on the dashboard map to define a canvassing area
+- [ ] **PLAN-02**: User can connect points into a polygon to select a neighborhood boundary
+- [ ] **PLAN-03**: App auto-populates house addresses within the drawn area from a geocoding API
+- [ ] **PLAN-04**: App auto-sorts populated knocks into a walking order (down one side of street, back on the other)
+- [ ] **PLAN-05**: User can manually reorder knocks after auto-sort by dragging
+- [ ] **PLAN-06**: User can save a planned route with a name
+- [ ] **PLAN-07**: Planned route displays stats: door count and estimated time (4min/door)
+
+### Route Data Model
+
+- [ ] **DATA-01**: Planned routes and executed runs share the same database structure (sessions table)
+- [ ] **DATA-02**: Planned knocks are stored as visit/knock records with null audio, time, and date fields
+- [ ] **DATA-03**: Session has a "started" flag — false for planned routes, true once execution begins
+- [ ] **DATA-04**: Planned knocks persist as unvisited markers until executed
+
+### Route Execution (Mobile)
+
+- [ ] **EXEC-01**: User can browse and select a planned route to execute from a list
+- [ ] **EXEC-02**: Selected route shows the first house address to drive to
+- [ ] **EXEC-03**: User taps "start run" to begin execution (timer starts, session marked as started)
+- [ ] **EXEC-04**: Mobile view shows current expected house number/address
+- [ ] **EXEC-05**: Mini map displays user's GPS position relative to upcoming houses on the route
+- [ ] **EXEC-06**: Progress indicator shows doors completed vs remaining and elapsed time
+- [ ] **EXEC-07**: Tapping record snapshots GPS coordinates and starts audio recording
+- [ ] **EXEC-08**: After stopping recording, existing notes/status flow applies — then advances to next house
 
 ## v2 Requirements
 
@@ -58,7 +88,6 @@ Deferred to future release. Tracked but not in current roadmap.
 |---------|--------|
 | Multi-user / team features | Single user only; brother not canvassing independently |
 | CRM pipeline / deal stages | Solo operator doesn't need pipeline management |
-| Route optimization | Walks neighborhoods organically, not optimized delivery |
 | Real-time transcription | Adds cost/complexity; user needs to focus on conversation |
 | Photo capture at doors | Breaks zero-friction UX; can use regular camera app if needed |
 | Offline-first with background sync | Palo Alto has excellent cell coverage; handle retries instead |
@@ -88,12 +117,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-04 | Phase 2 | Complete |
 | DASH-05 | Phase 2 | Complete |
 | DASH-06 | Phase 2 | Complete |
+| PLAN-01 | — | Pending |
+| PLAN-02 | — | Pending |
+| PLAN-03 | — | Pending |
+| PLAN-04 | — | Pending |
+| PLAN-05 | — | Pending |
+| PLAN-06 | — | Pending |
+| PLAN-07 | — | Pending |
+| DATA-01 | — | Pending |
+| DATA-02 | — | Pending |
+| DATA-03 | — | Pending |
+| DATA-04 | — | Pending |
+| EXEC-01 | — | Pending |
+| EXEC-02 | — | Pending |
+| EXEC-03 | — | Pending |
+| EXEC-04 | — | Pending |
+| EXEC-05 | — | Pending |
+| EXEC-06 | — | Pending |
+| EXEC-07 | — | Pending |
+| EXEC-08 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 16 total
-- Mapped to phases: 16
-- Unmapped: 0 ✓
+- v1.1 requirements: 19 total
+- Mapped to phases: 0
+- Unmapped: 19 ⚠️
 
 ---
 *Requirements defined: 2026-03-16*
-*Last updated: 2026-03-16 after roadmap creation*
+*Last updated: 2026-03-18 after milestone v1.1 definition*
