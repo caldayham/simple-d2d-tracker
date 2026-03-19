@@ -66,10 +66,9 @@ export function VisitDetail({ visit, sessionColor, onEdit, onDelete }: VisitDeta
         <div className="flex items-center gap-1.5">
           <Clock size={12} />
           <span>
-            {format(
-              new Date(visit.recorded_at),
-              'EEEE, MMM d, yyyy h:mm a'
-            )}
+            {visit.recorded_at
+              ? format(new Date(visit.recorded_at), 'EEEE, MMM d, yyyy h:mm a')
+              : 'Planned'}
           </span>
           {visit.manually_added && (
             <span className="text-[10px] text-amber-400 bg-amber-400/10 rounded px-1.5 py-0.5 ml-1">

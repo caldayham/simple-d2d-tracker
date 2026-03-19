@@ -6,6 +6,7 @@ export type Session = {
   ended_at: string | null;
   notes: string | null;
   sort_order: number | null;
+  started: boolean;
 };
 
 export type Visit = {
@@ -25,9 +26,12 @@ export type Visit = {
   age_range: string | null;
   occupancy: string | null;
   manually_added: boolean;
-  recorded_at: string;
+  recorded_at: string | null;
   created_at: string;
 };
+
+// Planned knocks are visits with null audio_path and null recorded_at
+export type PlannedKnock = Visit;
 
 export type ResultTag = {
   name: string;
