@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import type { Session, Visit, ResultTag } from '@/lib/types';
+import type { Session, Visit, ResultTag, PracticeNode, PracticeConnection } from '@/lib/types';
 import { getSessionColor } from '@/lib/colors';
 import { RunsList } from './RunsList';
 import { RunDetail } from './RunDetail';
@@ -18,7 +18,7 @@ import { resolveAndUpdateAddress } from '@/actions/visits';
 import { createSession, endSession, deleteSession, updateSession, reorderSessions, createPlannedRoute, addPlannedKnocks } from '@/actions/sessions';
 import { findAddressesInArea } from '@/actions/geocoding';
 import { sortKnocksWalkingOrder, sortKnocksByDirection } from '@/lib/route-sort';
-import { Plus, Footprints, DoorOpen, Map as MapIcon, BarChart3 } from 'lucide-react';
+import { Plus, Footprints, DoorOpen, Map as MapIcon, BarChart3, Home, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DrawingPoint } from '@/lib/drawing';
 import type { PlannedKnock } from './DrawingMap';
@@ -34,15 +34,22 @@ const DrawingMap = dynamic(() => import('./DrawingMap'), {
   loading: () => <div className="flex-1 bg-zinc-900 animate-pulse" />,
 });
 
-type SidebarTab = 'runs' | 'knocks' | 'plan';
+const PracticeCanvas = dynamic(() => import('./PracticeCanvas'), {
+  ssr: false,
+  loading: () => <div className="flex-1 bg-zinc-900 animate-pulse" />,
+});
+
+type SidebarTab = 'runs' | 'knocks' | 'plan' | 'practice';
 
 interface DashboardShellProps {
   sessions: Session[];
   visits: Visit[];
   resultTags: ResultTag[];
+  practiceNodes: PracticeNode[];
+  practiceConnections: PracticeConnection[];
 }
 
-export function DashboardShell({ sessions, visits, resultTags }: DashboardShellProps) {
+export function DashboardShell({ sessions, visits, resultTags, practiceNodes, practiceConnections }: DashboardShellProps) {
   const router = useRouter();
 
   // Tab state (persisted — hydration-safe via useEffect)
@@ -53,7 +60,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
   }, []);
   useEffect(() => {
     const saved = localStorage.getItem('dashboard-tab');
-    if (saved === 'runs' || saved === 'knocks' || saved === 'plan') {
+    if (saved === 'runs' || saved === 'knocks' || saved === 'plan' || saved === 'practice') {
       setActiveTabRaw(saved);
     }
   }, []);
@@ -74,7 +81,14 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [routeName, setRouteName] = useState('');
   const [isSavingRoute, setIsSavingRoute] = useState(false);
-  const [showPlanned, setShowPlanned] = useState(true);
+  const [showPlanned, setShowPlannedRaw] = useState(true);
+  const setShowPlanned = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    setShowPlannedRaw((prev) => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      localStorage.setItem('dashboard-show-planned', String(next));
+      return next;
+    });
+  }, []);
   const [showExecutedInPlan, setShowExecutedInPlanRaw] = useState(false);
   const setShowExecutedInPlan = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
     setShowExecutedInPlanRaw((prev) => {
@@ -87,35 +101,72 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
     setShowExecutedInPlanRaw(localStorage.getItem('dashboard-show-executed') === 'true');
   }, []);
 
-  // Map/Analytics toggle state
+  // Map/Analytics toggle state — at least one must be on
   const [showMap, setShowMap] = useState(true);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [homeFocus, setHomeFocus] = useState(0);
+  const [mapRatio, setMapRatio] = useState(50);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+
+  // Restore saved view preferences after hydration
   useEffect(() => {
     const savedMap = localStorage.getItem('dashboard-show-map');
     const savedAnalytics = localStorage.getItem('dashboard-show-analytics');
+    const savedRatio = localStorage.getItem('dashboard-map-ratio');
     if (savedMap !== null) setShowMap(savedMap === 'true');
     if (savedAnalytics !== null) setShowAnalytics(savedAnalytics === 'true');
+    if (savedRatio !== null) setMapRatio(Number(savedRatio));
+    const savedPlanned = localStorage.getItem('dashboard-show-planned');
+    if (savedPlanned !== null) setShowPlannedRaw(savedPlanned !== 'false');
   }, []);
-  const toggleMap = useCallback(() => {
-    setShowMap((prev) => {
-      if (prev && !showAnalytics) return prev; // cannot turn off last one
-      const next = !prev;
-      localStorage.setItem('dashboard-show-map', String(next));
-      return next;
-    });
-  }, [showAnalytics]);
-  const toggleAnalytics = useCallback(() => {
-    setShowAnalytics((prev) => {
-      if (prev && !showMap) return prev; // cannot turn off last one
-      const next = !prev;
-      localStorage.setItem('dashboard-show-analytics', String(next));
-      return next;
-    });
-  }, [showMap]);
+
+  function toggleMap() {
+    if (showMap && !showAnalytics) return;
+    const next = !showMap;
+    setShowMap(next);
+    localStorage.setItem('dashboard-show-map', String(next));
+  }
+
+  function toggleAnalytics() {
+    if (showAnalytics && !showMap) return;
+    const next = !showAnalytics;
+    setShowAnalytics(next);
+    localStorage.setItem('dashboard-show-analytics', String(next));
+  }
+
+  function handleDividerDrag(e: React.MouseEvent) {
+    e.preventDefault();
+    const container = splitContainerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+
+    function onMove(ev: MouseEvent) {
+      const pct = Math.min(80, Math.max(20, ((ev.clientY - rect.top) / rect.height) * 100));
+      setMapRatio(pct);
+      localStorage.setItem('dashboard-map-ratio', String(Math.round(pct)));
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
 
   // Escape key: close modal → deselect item → deselect filter (priority order)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'h' || e.key === 'H') {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+          setHomeFocus((n) => n + 1);
+          return;
+        }
+      }
       if (e.key !== 'Escape') return;
       if (modalMode !== 'closed') {
         setModalMode('closed');
@@ -470,11 +521,26 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
         <MapIcon size={15} />
         Plan
       </button>
+      <button
+        onClick={() => setActiveTab('practice')}
+        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+          activeTab === 'practice'
+            ? 'text-white border-b-2 border-blue-500'
+            : 'text-zinc-400 hover:text-zinc-300'
+        }`}
+      >
+        <Brain size={15} />
+        Practice
+      </button>
     </div>
   );
 
   // --- Sidebar content based on active tab ---
-  const sidebarContent = activeTab === 'runs' ? (
+  const sidebarContent = activeTab === 'practice' ? (
+    <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-6 text-center">
+      Use the canvas to build your conversation script. Press A to add steps, C to connect them.
+    </div>
+  ) : activeTab === 'runs' ? (
     <>
       <RunsList
         sessions={sessions}
@@ -614,7 +680,9 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
       {/* Desktop layout */}
       <div className="hidden md:flex flex-1">
         <div className="flex-1 relative flex flex-col">
-          {activeTab === 'plan' ? (
+          {activeTab === 'practice' ? (
+            <PracticeCanvas nodes={practiceNodes} connections={practiceConnections} />
+          ) : activeTab === 'plan' ? (
             <DrawingMap
               onPolygonComplete={handlePolygonComplete}
               onCancel={handleCancelPlan}
@@ -628,35 +696,51 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
             />
           ) : (
             <>
-              {showMap && (
-                <div className="flex-1 relative">
-                  <DashboardMap
-                    visits={mapVisits}
-                    sessionColorMap={sessionColorMap}
-                    selectedVisitId={activeTab === 'knocks' ? selectedVisitId : null}
-                    onSelectVisit={(id) => {
-                      if (activeTab === 'knocks') setSelectedVisitId(id);
-                    }}
-                    plannedKnocks={showPlanned && !(activeTab === 'runs' && selectedRunId) ? plannedVisits : []}
-                    focusKey={activeTab === 'runs' ? selectedRunId : selectedSessionId}
+              <div ref={splitContainerRef} className="flex-1 flex flex-col overflow-hidden">
+                {showMap && (
+                  <div className="relative" style={{ height: showAnalytics ? `${mapRatio}%` : '100%' }}>
+                    <DashboardMap
+                      visits={mapVisits}
+                      sessionColorMap={sessionColorMap}
+                      selectedVisitId={activeTab === 'knocks' ? selectedVisitId : null}
+                      onSelectVisit={(id) => {
+                        if (activeTab === 'knocks') setSelectedVisitId(id);
+                      }}
+                      plannedKnocks={showPlanned && !(activeTab === 'runs' && selectedRunId) ? plannedVisits : []}
+                      focusKey={`${activeTab === 'runs' ? selectedRunId : selectedSessionId}-${homeFocus}`}
+                    />
+                  </div>
+                )}
+                {showMap && showAnalytics && (
+                  <div
+                    onMouseDown={handleDividerDrag}
+                    className="h-1.5 bg-zinc-700 hover:bg-zinc-500 cursor-row-resize flex-shrink-0 transition-colors"
                   />
-                </div>
-              )}
-              {showMap && showAnalytics && (
-                <div className="border-t border-zinc-700" />
-              )}
-              {showAnalytics && (
-                <div className="flex-1">
-                  <AnalyticsPanel visits={mapVisits} resultTags={resultTags} />
-                </div>
-              )}
-              <button
-                onClick={activeTab === 'knocks' ? handleAddVisit : handleAddRun}
-                className="absolute top-4 right-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg shadow-lg hover:bg-blue-500 transition-colors"
-              >
-                <Plus size={16} />
-                {activeTab === 'knocks' ? 'Add Knock' : 'Add Run'}
-              </button>
+                )}
+                {showAnalytics && (
+                  <div style={{ height: showMap ? `${100 - mapRatio}%` : '100%' }}>
+                    <AnalyticsPanel visits={mapVisits} resultTags={resultTags} />
+                  </div>
+                )}
+              </div>
+              <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+                <button
+                  onClick={activeTab === 'knocks' ? handleAddVisit : handleAddRun}
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg shadow-lg hover:bg-blue-500 transition-colors"
+                >
+                  <Plus size={16} />
+                  {activeTab === 'knocks' ? 'Add Knock' : 'Add Run'}
+                </button>
+                <button
+                  onClick={() => setHomeFocus((n) => n + 1)}
+                  className="flex items-center gap-2 px-3 py-2 bg-zinc-800/80 text-zinc-300 text-sm rounded-lg shadow-lg hover:bg-zinc-700 transition-colors"
+                  title="Re-center map (H)"
+                >
+                  <Home size={16} />
+                  Home
+                  <kbd className="ml-1 px-1 py-0.5 text-[10px] bg-zinc-700 rounded">H</kbd>
+                </button>
+              </div>
               {/* Planned route visibility toggle */}
               {plannedVisits.length > 0 && (
                 <button
@@ -673,7 +757,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
                 </button>
               )}
               {/* Map/Analytics toggle buttons */}
-              <div className="absolute bottom-4 right-4 z-[1000] flex gap-2">
+              <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2">
                 <button
                   onClick={toggleMap}
                   className={`px-3 py-2 text-sm font-medium rounded-lg shadow-lg transition-colors flex items-center gap-1.5 ${
@@ -709,7 +793,11 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
       {/* Mobile layout */}
       <div className="flex md:hidden flex-1 flex-col overflow-hidden">
         {tabBar}
-        {activeTab === 'plan' ? (
+        {activeTab === 'practice' ? (
+          <div className="flex-1 relative">
+            <PracticeCanvas nodes={practiceNodes} connections={practiceConnections} />
+          </div>
+        ) : activeTab === 'plan' ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 relative">
               <DrawingMap
