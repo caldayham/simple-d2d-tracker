@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import type { Session, Visit, ResultTag, PracticeNode, PracticeConnection } from '@/lib/types';
+import type { Session, Visit, ResultTag } from '@/lib/types';
 import { getSessionColor } from '@/lib/colors';
 import { RunsList } from './RunsList';
 import { RunDetail } from './RunDetail';
@@ -18,7 +18,7 @@ import { resolveAndUpdateAddress } from '@/actions/visits';
 import { createSession, endSession, deleteSession, updateSession, reorderSessions, createPlannedRoute, addPlannedKnocks } from '@/actions/sessions';
 import { findAddressesInArea } from '@/actions/geocoding';
 import { sortKnocksWalkingOrder, sortKnocksByDirection } from '@/lib/route-sort';
-import { Plus, Footprints, DoorOpen, Map as MapIcon, BarChart3, Home, Brain } from 'lucide-react';
+import { Plus, Footprints, DoorOpen, Map as MapIcon, BarChart3, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DrawingPoint } from '@/lib/drawing';
 import type { PlannedKnock } from './DrawingMap';
@@ -34,22 +34,15 @@ const DrawingMap = dynamic(() => import('./DrawingMap'), {
   loading: () => <div className="flex-1 bg-zinc-900 animate-pulse" />,
 });
 
-const PracticeCanvas = dynamic(() => import('./PracticeCanvas'), {
-  ssr: false,
-  loading: () => <div className="flex-1 bg-zinc-900 animate-pulse" />,
-});
-
-type SidebarTab = 'runs' | 'knocks' | 'plan' | 'practice';
+type SidebarTab = 'runs' | 'knocks' | 'plan';
 
 interface DashboardShellProps {
   sessions: Session[];
   visits: Visit[];
   resultTags: ResultTag[];
-  practiceNodes: PracticeNode[];
-  practiceConnections: PracticeConnection[];
 }
 
-export function DashboardShell({ sessions, visits, resultTags, practiceNodes, practiceConnections }: DashboardShellProps) {
+export function DashboardShell({ sessions, visits, resultTags }: DashboardShellProps) {
   const router = useRouter();
 
   // Tab state (persisted — hydration-safe via useEffect)
@@ -60,7 +53,7 @@ export function DashboardShell({ sessions, visits, resultTags, practiceNodes, pr
   }, []);
   useEffect(() => {
     const saved = localStorage.getItem('dashboard-tab');
-    if (saved === 'runs' || saved === 'knocks' || saved === 'plan' || saved === 'practice') {
+    if (saved === 'runs' || saved === 'knocks' || saved === 'plan') {
       setActiveTabRaw(saved);
     }
   }, []);
@@ -521,26 +514,11 @@ export function DashboardShell({ sessions, visits, resultTags, practiceNodes, pr
         <MapIcon size={15} />
         Plan
       </button>
-      <button
-        onClick={() => setActiveTab('practice')}
-        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
-          activeTab === 'practice'
-            ? 'text-white border-b-2 border-blue-500'
-            : 'text-zinc-400 hover:text-zinc-300'
-        }`}
-      >
-        <Brain size={15} />
-        Practice
-      </button>
     </div>
   );
 
   // --- Sidebar content based on active tab ---
-  const sidebarContent = activeTab === 'practice' ? (
-    <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-6 text-center">
-      Use the canvas to build your conversation script. Press A to add steps, C to connect them.
-    </div>
-  ) : activeTab === 'runs' ? (
+  const sidebarContent = activeTab === 'runs' ? (
     <>
       <RunsList
         sessions={sessions}
@@ -680,9 +658,7 @@ export function DashboardShell({ sessions, visits, resultTags, practiceNodes, pr
       {/* Desktop layout */}
       <div className="hidden md:flex flex-1">
         <div className="flex-1 relative flex flex-col">
-          {activeTab === 'practice' ? (
-            <PracticeCanvas nodes={practiceNodes} connections={practiceConnections} />
-          ) : activeTab === 'plan' ? (
+          {activeTab === 'plan' ? (
             <DrawingMap
               onPolygonComplete={handlePolygonComplete}
               onCancel={handleCancelPlan}
@@ -793,11 +769,7 @@ export function DashboardShell({ sessions, visits, resultTags, practiceNodes, pr
       {/* Mobile layout */}
       <div className="flex md:hidden flex-1 flex-col overflow-hidden">
         {tabBar}
-        {activeTab === 'practice' ? (
-          <div className="flex-1 relative">
-            <PracticeCanvas nodes={practiceNodes} connections={practiceConnections} />
-          </div>
-        ) : activeTab === 'plan' ? (
+        {activeTab === 'plan' ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 relative">
               <DrawingMap

@@ -11,6 +11,7 @@ interface RunsListProps {
   selectedRunId: string | null;
   onSelectRun: (id: string | null) => void;
   onReorder?: (sessionId: string, direction: 'up' | 'down') => void;
+  onChangeColor?: (sessionId: string, color: string) => void;
 }
 
 export function RunsList({

@@ -44,7 +44,7 @@ export async function endSession(sessionId: string): Promise<void> {
 
 export async function updateSession(
   sessionId: string,
-  data: { label?: string; notes?: string | null }
+  data: { label?: string; notes?: string | null; color?: string | null }
 ): Promise<void> {
   const supabase = await createClient();
   const {
@@ -133,7 +133,7 @@ export async function createPlannedRoute(label: string): Promise<Session> {
 
 export async function addPlannedKnocks(
   sessionId: string,
-  knocks: Array<{ latitude: number; longitude: number; address: string | null }>
+  knocks: Array<{ latitude: number; longitude: number; address: string | null; notes?: string }>
 ): Promise<void> {
   const supabase = await createClient();
   const {
@@ -163,6 +163,7 @@ export async function addPlannedKnocks(
     latitude: knock.latitude,
     longitude: knock.longitude,
     address: knock.address,
+    notes: knock.notes || null,
     audio_path: null,
     audio_mime_type: null,
     audio_duration_seconds: null,

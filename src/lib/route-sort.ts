@@ -1,4 +1,71 @@
 /**
+ * Sort knocks by their projection along a direction polyline.
+ * Each knock is projected to the nearest point on the polyline,
+ * then sorted by distance along the polyline from start.
+ */
+export function sortKnocksByDirection<
+  T extends { latitude: number; longitude: number }
+>(knocks: T[], directionPoints: Array<{ lat: number; lng: number }>): T[] {
+  if (directionPoints.length < 2 || knocks.length <= 1) return [...knocks];
+
+  // Build segments with cumulative distance
+  const segments: Array<{
+    startLat: number; startLng: number;
+    endLat: number; endLng: number;
+    cumDist: number;
+    length: number;
+  }> = [];
+
+  let cumDist = 0;
+  for (let i = 0; i < directionPoints.length - 1; i++) {
+    const s = directionPoints[i];
+    const e = directionPoints[i + 1];
+    const length = Math.sqrt(
+      Math.pow((e.lat - s.lat) * 111320, 2) +
+      Math.pow((e.lng - s.lng) * 111320 * Math.cos((s.lat * Math.PI) / 180), 2)
+    );
+    segments.push({
+      startLat: s.lat, startLng: s.lng,
+      endLat: e.lat, endLng: e.lng,
+      cumDist, length,
+    });
+    cumDist += length;
+  }
+
+  // For each knock, find position along the polyline
+  const withDist = knocks.map((knock) => {
+    let minDist = Infinity;
+    let alongPolyline = 0;
+
+    for (const seg of segments) {
+      // Project knock onto segment in meter-space
+      const dx = (seg.endLng - seg.startLng) * 111320 * Math.cos((seg.startLat * Math.PI) / 180);
+      const dy = (seg.endLat - seg.startLat) * 111320;
+      const px = (knock.longitude - seg.startLng) * 111320 * Math.cos((seg.startLat * Math.PI) / 180);
+      const py = (knock.latitude - seg.startLat) * 111320;
+
+      const lenSq = dx * dx + dy * dy;
+      let t = lenSq > 0 ? (px * dx + py * dy) / lenSq : 0;
+      t = Math.max(0, Math.min(1, t));
+
+      const projX = t * dx;
+      const projY = t * dy;
+      const dist = Math.sqrt(Math.pow(px - projX, 2) + Math.pow(py - projY, 2));
+
+      if (dist < minDist) {
+        minDist = dist;
+        alongPolyline = seg.cumDist + t * seg.length;
+      }
+    }
+
+    return { knock, alongPolyline };
+  });
+
+  withDist.sort((a, b) => a.alongPolyline - b.alongPolyline);
+  return withDist.map((k) => k.knock);
+}
+
+/**
  * Walking order sort algorithm for planned knocks.
  *
  * Sorts knocks into a serpentine street-walking pattern:

@@ -22,6 +22,36 @@ const INITIAL_STATE: DrawingState = {
   activePointId: null,
 };
 
+/**
+ * Traverse the connection graph to return points in polygon-boundary order.
+ * Starts from the first point and follows connections to produce a correctly
+ * ordered polygon. This is critical because the points array is in insertion
+ * order, which diverges from traversal order when points are inserted on edges.
+ */
+export function getOrderedPoints(points: DrawingPoint[]): DrawingPoint[] {
+  if (points.length < 3) return points;
+
+  const byId = new Map(points.map((p) => [p.id, p]));
+  const ordered: DrawingPoint[] = [];
+  const visited = new Set<string>();
+
+  let current = points[0];
+  ordered.push(current);
+  visited.add(current.id);
+
+  while (ordered.length < points.length) {
+    const next = current.connections
+      .map((id) => byId.get(id)!)
+      .find((p) => p && !visited.has(p.id));
+    if (!next) break; // shouldn't happen in a valid closed polygon
+    ordered.push(next);
+    visited.add(next.id);
+    current = next;
+  }
+
+  return ordered;
+}
+
 /** Deduplicated edges from point connections */
 export function getEdges(points: DrawingPoint[]): [string, string][] {
   const seen = new Set<string>();
@@ -116,6 +146,13 @@ export function useDrawingState() {
     });
   }, []);
 
+  const movePoint = useCallback((id: string, lat: number, lng: number) => {
+    setState((s) => ({
+      ...s,
+      points: s.points.map((p) => (p.id === id ? { ...p, lat, lng } : p)),
+    }));
+  }, []);
+
   const removePoint = useCallback((id: string) => {
     setState((s) => {
       const point = s.points.find((p) => p.id === id);
@@ -151,12 +188,43 @@ export function useDrawingState() {
     });
   }, []);
 
+  const insertPointOnEdge = useCallback((aId: string, bId: string, lat: number, lng: number) => {
+    setState((s) => {
+      const a = s.points.find((p) => p.id === aId);
+      const b = s.points.find((p) => p.id === bId);
+      if (!a || !b) return s;
+      if (!a.connections.includes(bId)) return s;
+
+      const newId = crypto.randomUUID();
+      const newPoint: DrawingPoint = {
+        id: newId,
+        lat,
+        lng,
+        connections: [aId, bId],
+      };
+
+      // Remove old A↔B connection, add A↔new and B↔new
+      const newPoints = s.points.map((p) => {
+        if (p.id === aId) {
+          return { ...p, connections: p.connections.map((c) => (c === bId ? newId : c)) };
+        }
+        if (p.id === bId) {
+          return { ...p, connections: p.connections.map((c) => (c === aId ? newId : c)) };
+        }
+        return p;
+      });
+      newPoints.push(newPoint);
+
+      return { ...s, points: newPoints, activePointId: newId };
+    });
+  }, []);
+
   const clear = useCallback(() => {
     setState(INITIAL_STATE);
   }, []);
 
   const getCoordinates = useCallback((): [number, number][] => {
-    return state.points.map((p) => [p.lat, p.lng]);
+    return getOrderedPoints(state.points).map((p) => [p.lat, p.lng]);
   }, [state.points]);
 
   return {
@@ -167,10 +235,38 @@ export function useDrawingState() {
     addPoint,
     selectPoint,
     connectToPoint,
+    movePoint,
+    insertPointOnEdge,
     removePoint,
     clear,
     getCoordinates,
   };
+}
+
+/**
+ * Find the nearest point on a line segment to a given point, in pixel space.
+ * Returns the projected point and pixel distance.
+ */
+export function nearestPointOnSegment(
+  point: L.Point,
+  segA: L.Point,
+  segB: L.Point,
+): { projected: L.Point; distance: number; t: number } {
+  const dx = segB.x - segA.x;
+  const dy = segB.y - segA.y;
+  const lenSq = dx * dx + dy * dy;
+
+  let t = 0;
+  if (lenSq > 0) {
+    t = ((point.x - segA.x) * dx + (point.y - segA.y) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+  }
+
+  const projected = L.point(segA.x + t * dx, segA.y + t * dy);
+  const pdx = point.x - projected.x;
+  const pdy = point.y - projected.y;
+
+  return { projected, distance: Math.sqrt(pdx * pdx + pdy * pdy), t };
 }
 
 /**

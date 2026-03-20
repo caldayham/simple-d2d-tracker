@@ -29,6 +29,9 @@ interface PracticeCanvasProps {
   connections: PracticeConnection[];
 }
 
+const DOT_SPACING = 24;
+const DOT_COLOR = 'rgba(113,113,122,0.35)';
+
 export default function PracticeCanvas({ nodes: initialNodes, connections: initialConnections }: PracticeCanvasProps) {
   const [nodes, setNodes] = useState<PracticeNode[]>(initialNodes);
   const [connections, setConnections] = useState<PracticeConnection[]>(initialConnections);
@@ -54,18 +57,37 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
     nodeStartH: number;
   } | null>(null);
 
-  const canvasRef = useRef<HTMLDivElement>(null);
+  // Pan state
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panState, setPanState] = useState<{
+    startX: number;
+    startY: number;
+    panStartX: number;
+    panStartY: number;
+    moved: boolean;
+  } | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
   const newNodeRef = useRef<HTMLTextAreaElement | null>(null);
   const pendingFocusId = useRef<string | null>(null);
 
-  const CANVAS_SIZE = 4000;
+  // Convert screen coords to canvas coords
+  const screenToCanvas = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return { x: 0, y: 0 };
+      return {
+        x: clientX - rect.left - pan.x,
+        y: clientY - rect.top - pan.y,
+      };
+    },
+    [pan]
+  );
 
   // Focus newly created node textarea
   useEffect(() => {
     if (pendingFocusId.current) {
-      const id = pendingFocusId.current;
       pendingFocusId.current = null;
-      // Small delay to let React render the new node
       requestAnimationFrame(() => {
         if (newNodeRef.current) {
           newNodeRef.current.focus();
@@ -79,16 +101,21 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'TEXTAREA' || tag === 'INPUT') {
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
         if (e.key === 'Escape') {
           (e.target as HTMLElement).blur();
+          setAddMode(true);
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          (e.target as HTMLElement).blur();
+          setAddMode(true);
         }
         return;
       }
 
       if (e.key === 'a' || e.key === 'A') {
         e.preventDefault();
-        setAddMode(true);
+        setAddMode((prev) => !prev);
         setConnectMode(false);
         setConnectingFrom(null);
       } else if (e.key === 'c' || e.key === 'C') {
@@ -108,31 +135,43 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedNodeId]);
 
-  const handleCanvasClick = useCallback(
+  // Background mousedown → start pan
+  const handleBackgroundMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target !== e.currentTarget) return;
+      if (addMode) return; // don't pan in add mode, let click handler place node
+
+      e.preventDefault();
+      setPanState({
+        startX: e.clientX,
+        startY: e.clientY,
+        panStartX: pan.x,
+        panStartY: pan.y,
+        moved: false,
+      });
+    },
+    [pan, addMode]
+  );
+
+  // Background click (for add mode and deselect)
+  const handleBackgroundClick = useCallback(
     async (e: React.MouseEvent) => {
-      // Only handle clicks directly on the canvas background
       if (e.target !== e.currentTarget) return;
 
       if (connectMode && connectingFrom) {
-        // Cancel connecting
         setConnectingFrom(null);
         return;
       }
 
       if (addMode) {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const scrollLeft = (e.currentTarget as HTMLElement).parentElement?.scrollLeft ?? 0;
-        const scrollTop = (e.currentTarget as HTMLElement).parentElement?.scrollTop ?? 0;
-        const x = e.clientX - rect.left + scrollLeft;
-        const y = e.clientY - rect.top + scrollTop;
-
+        const { x, y } = screenToCanvas(e.clientX, e.clientY);
         try {
           const node = await upsertNode({
             content: '',
-            x: x - 100,
-            y: y - 60,
-            width: 200,
-            height: 120,
+            x: x - 75,
+            y: y - 18,
+            width: 150,
+            height: 36,
           });
           pendingFocusId.current = node.id;
           setNodes((prev) => [...prev, node]);
@@ -140,40 +179,61 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
         } catch (err) {
           console.error('Failed to create node:', err);
         }
-        setAddMode(false);
         return;
       }
 
-      // Click on background deselects
+      // If we just finished panning, don't deselect
+      if (panState?.moved) return;
+
       setSelectedNodeId(null);
     },
-    [addMode, connectMode, connectingFrom]
+    [addMode, connectMode, connectingFrom, screenToCanvas, panState]
   );
 
-  const handleCanvasMouseMove = useCallback(
+  // Global pan move/up
+  useEffect(() => {
+    if (!panState) return;
+
+    function onMouseMove(e: MouseEvent) {
+      setPanState((prev) => {
+        if (!prev) return null;
+        const dx = e.clientX - prev.startX;
+        const dy = e.clientY - prev.startY;
+        const moved = prev.moved || Math.abs(dx) > 3 || Math.abs(dy) > 3;
+        if (moved) {
+          setPan({ x: prev.panStartX + dx, y: prev.panStartY + dy });
+        }
+        return { ...prev, moved };
+      });
+    }
+
+    function onMouseUp() {
+      setPanState(null);
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [panState]);
+
+  // Mouse move for connecting line
+  const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (connectingFrom) {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const scrollLeft = (e.currentTarget as HTMLElement).parentElement?.scrollLeft ?? 0;
-        const scrollTop = (e.currentTarget as HTMLElement).parentElement?.scrollTop ?? 0;
-        setMousePos({
-          x: e.clientX - rect.left + scrollLeft,
-          y: e.clientY - rect.top + scrollTop,
-        });
+        const pos = screenToCanvas(e.clientX, e.clientY);
+        setMousePos(pos);
       }
     },
-    [connectingFrom]
+    [connectingFrom, screenToCanvas]
   );
 
   const handleNodeMouseDown = useCallback(
     (e: React.MouseEvent, nodeId: string) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'TEXTAREA') return;
-      if ((e.target as HTMLElement).dataset.resize) return;
-      if ((e.target as HTMLElement).dataset.delete) return;
-      if ((e.target as HTMLElement).dataset.anchor) return;
-
       e.preventDefault();
+      e.stopPropagation();
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return;
 
@@ -252,8 +312,8 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
         if (!prev) return null;
         const dx = e.clientX - prev.startX;
         const dy = e.clientY - prev.startY;
-        const newW = Math.max(120, prev.nodeStartW + dx);
-        const newH = Math.max(80, prev.nodeStartH + dy);
+        const newW = Math.max(40, prev.nodeStartW + dx);
+        const newH = Math.max(24, prev.nodeStartH + dy);
         setNodes((prevNodes) =>
           prevNodes.map((n) =>
             n.id === prev.nodeId ? { ...n, width: newW, height: newH } : n
@@ -310,11 +370,17 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
     [nodes]
   );
 
+  const handleTextChange = useCallback(
+    (nodeId: string, content: string) => {
+      setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, content } : n)));
+    },
+    []
+  );
+
   const handleTextBlur = useCallback(
     async (nodeId: string, content: string) => {
       const node = nodes.find((n) => n.id === nodeId);
-      if (!node || node.content === content) return;
-      setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, content } : n)));
+      if (!node) return;
       try {
         await upsertNode({
           id: node.id,
@@ -390,12 +456,32 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
+  // Determine cursor
+  let cursor = 'grab';
+  if (panState) cursor = 'grabbing';
+  if (addMode) cursor = 'crosshair';
+
+  // Dot grid background (moves with pan)
+  const dotBg = {
+    backgroundImage: `radial-gradient(circle, ${DOT_COLOR} 1px, transparent 1px)`,
+    backgroundSize: `${DOT_SPACING}px ${DOT_SPACING}px`,
+    backgroundPosition: `${pan.x % DOT_SPACING}px ${pan.y % DOT_SPACING}px`,
+  };
+
   return (
-    <div className="absolute inset-0 bg-zinc-950 overflow-auto">
+    <div
+      ref={containerRef}
+      className="absolute inset-0 overflow-hidden"
+      style={{ ...dotBg, backgroundColor: '#0c0c0f', cursor }}
+      onMouseDown={handleBackgroundMouseDown}
+      onClick={handleBackgroundClick}
+      onMouseMove={handleMouseMove}
+    >
       {/* Tool buttons */}
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 items-end">
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setAddMode(true);
             setConnectMode(false);
             setConnectingFrom(null);
@@ -410,7 +496,8 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
           <kbd className="ml-1 px-1 py-0.5 text-[10px] bg-blue-700 rounded">A</kbd>
         </button>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setConnectMode((prev) => !prev);
             setAddMode(false);
             setConnectingFrom(null);
@@ -433,23 +520,18 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
         </div>
       )}
 
-      {/* Canvas */}
+      {/* Transformed canvas layer */}
       <div
-        ref={canvasRef}
-        className="relative"
+        className="absolute inset-0"
         style={{
-          width: CANVAS_SIZE,
-          height: CANVAS_SIZE,
-          cursor: addMode ? 'crosshair' : 'default',
+          transform: `translate(${pan.x}px, ${pan.y}px)`,
+          pointerEvents: 'none',
         }}
-        onClick={handleCanvasClick}
-        onMouseMove={handleCanvasMouseMove}
       >
         {/* SVG connections overlay */}
         <svg
-          className="absolute inset-0 pointer-events-none"
-          width={CANVAS_SIZE}
-          height={CANVAS_SIZE}
+          className="absolute overflow-visible pointer-events-none"
+          style={{ left: 0, top: 0 }}
         >
           {connections.map((conn) => {
             const fromNode = nodeMap.get(conn.from_node_id);
@@ -484,7 +566,7 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
                   strokeWidth={2}
                   style={{ pointerEvents: 'none' }}
                 />
-                {/* Arrow marker at midpoint direction */}
+                {/* Midpoint dot */}
                 <circle
                   cx={mid.x}
                   cy={mid.y}
@@ -548,7 +630,7 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
         {nodes.map((node) => (
           <div
             key={node.id}
-            className={`absolute bg-zinc-800 border rounded-xl shadow-lg select-none ${
+            className={`absolute border rounded-xl shadow-lg select-none ${
               selectedNodeId === node.id ? 'border-blue-500' : 'border-zinc-600'
             }`}
             style={{
@@ -556,9 +638,25 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
               top: node.y,
               width: node.width,
               height: node.height,
+              pointerEvents: 'auto',
+              background: '#27272a',
             }}
-            onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
           >
+            {/* Drag handle — top left */}
+            <div
+              data-drag="true"
+              onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+              className="absolute top-0 left-0 w-6 h-6 z-10 cursor-grab active:cursor-grabbing flex items-center justify-center rounded-tl-xl rounded-br-lg"
+              title="Drag to move"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" className="opacity-40">
+                <circle cx="2" cy="2" r="1.2" fill="#a1a1aa" />
+                <circle cx="6" cy="2" r="1.2" fill="#a1a1aa" />
+                <circle cx="2" cy="6" r="1.2" fill="#a1a1aa" />
+                <circle cx="6" cy="6" r="1.2" fill="#a1a1aa" />
+              </svg>
+            </div>
+
             {/* Delete button */}
             {selectedNodeId === node.id && (
               <button
@@ -577,10 +675,12 @@ export default function PracticeCanvas({ nodes: initialNodes, connections: initi
             <textarea
               ref={pendingFocusId.current === node.id ? (el) => { newNodeRef.current = el; } : undefined}
               defaultValue={node.content}
+              onChange={(e) => handleTextChange(node.id, e.target.value)}
               onBlur={(e) => handleTextBlur(node.id, e.target.value)}
               onFocus={() => setSelectedNodeId(node.id)}
-              className="w-full h-full bg-transparent text-white text-sm p-3 resize-none focus:outline-none"
-              placeholder="Type your script step..."
+              className="absolute inset-0 bg-transparent text-white text-sm text-center resize-none focus:outline-none overflow-hidden"
+              style={{ padding: '8px 10px', lineHeight: '1.4', margin: 0 }}
+              placeholder="Type..."
             />
 
             {/* Resize handle */}

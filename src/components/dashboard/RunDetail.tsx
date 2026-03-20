@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { Session, Visit } from '@/lib/types';
 import { format } from 'date-fns';
+import { RUN_COLOR_PRESETS } from '@/lib/colors';
 import {
   Clock,
   MapPin,
@@ -22,6 +23,7 @@ interface RunDetailProps {
   onEdit: (sessionId: string, data: { label: string; notes: string }) => void;
   onDelete: (sessionId: string) => void;
   onEndRun?: (sessionId: string) => void;
+  onChangeColor?: (sessionId: string, color: string) => void;
 }
 
 export function RunDetail({
@@ -32,10 +34,22 @@ export function RunDetail({
   onEdit,
   onDelete,
   onEndRun,
+  onChangeColor,
 }: RunDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(session.label ?? '');
   const [notes, setNotes] = useState(session.notes ?? '');
+  const [pendingColor, setPendingColor] = useState<string | null>(null);
+  const [prevSessionId, setPrevSessionId] = useState(session.id);
+
+  // Reset form state when switching to a different run
+  if (session.id !== prevSessionId) {
+    setPrevSessionId(session.id);
+    setLabel(session.label ?? '');
+    setNotes(session.notes ?? '');
+    setIsEditing(false);
+    setPendingColor(null);
+  }
 
   const knockCount = visits.filter(
     (v) => v.session_id === session.id
@@ -54,6 +68,10 @@ export function RunDetail({
 
   function handleSave() {
     onEdit(session.id, { label, notes });
+    if (pendingColor && onChangeColor) {
+      onChangeColor(session.id, pendingColor);
+    }
+    setPendingColor(null);
     setIsEditing(false);
   }
 
@@ -63,7 +81,7 @@ export function RunDetail({
       <div className="flex items-center gap-2">
         <span
           className="w-1 h-5 rounded-full shrink-0"
-          style={{ backgroundColor: sessionColor }}
+          style={{ backgroundColor: pendingColor ?? sessionColor }}
         />
         {isEditing ? (
           <input
@@ -93,6 +111,7 @@ export function RunDetail({
                   setIsEditing(false);
                   setLabel(session.label ?? '');
                   setNotes(session.notes ?? '');
+                  setPendingColor(null);
                 }}
                 className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
                 title="Cancel"
@@ -178,15 +197,50 @@ export function RunDetail({
         </div>
       )}
 
-      {/* Notes (editing mode) */}
+      {/* Notes & color (editing mode) */}
       {isEditing && (
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Run notes..."
-          rows={2}
-          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-        />
+        <>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Run notes..."
+            rows={2}
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+          />
+          {/* Color picker */}
+          <div>
+            <label className="text-xs text-zinc-500 mb-1.5 block">Color</label>
+            <div className="flex gap-1.5">
+              {RUN_COLOR_PRESETS.map((preset) => {
+                const activeColor = pendingColor ?? sessionColor;
+                const isActive = activeColor === preset.hex;
+                return (
+                  <button
+                    key={preset.hex}
+                    onClick={() => setPendingColor(preset.hex)}
+                    className="transition-transform hover:scale-110"
+                    title={preset.name}
+                    type="button"
+                  >
+                    <div
+                      style={{
+                        width: 20,
+                        height: 20,
+                        background: preset.hex,
+                        opacity: isActive ? 0.95 : 0.7,
+                        border: isActive
+                          ? '2px solid #fff'
+                          : '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: 2,
+                        cursor: 'pointer',
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Notes (display mode) */}
