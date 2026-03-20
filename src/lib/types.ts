@@ -7,6 +7,7 @@ export type Session = {
   notes: string | null;
   sort_order: number | null;
   started: boolean;
+  color: string | null;
 };
 
 export type Visit = {
@@ -37,6 +38,28 @@ export type PlannedKnock = Visit;
 export type ResultTag = {
   name: string;
   color: string;
+};
+
+export type PracticeNode = {
+  id: string;
+  user_id: string;
+  content: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PracticeConnection = {
+  id: string;
+  user_id: string;
+  from_node_id: string;
+  to_node_id: string;
+  from_anchor: 'top' | 'right' | 'bottom' | 'left';
+  to_anchor: 'top' | 'right' | 'bottom' | 'left';
+  created_at: string;
 };
 
 export const DEFAULT_RESULT_TAGS: ResultTag[] = [
