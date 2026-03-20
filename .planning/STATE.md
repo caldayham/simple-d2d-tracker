@@ -83,9 +83,10 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Add gender, age range, name, and occupancy fields to knocks | 2026-03-19 | 6c2eef7 | [1-add-gender-and-age-range-fields-to-knock](./quick/1-add-gender-and-age-range-fields-to-knock/) |
+| 2 | Add analytics view with real-time bar chart | 2026-03-19 | fc81da0 | [2-add-analytics-view-with-real-time-bar-ch](./quick/2-add-analytics-view-with-real-time-bar-ch/) |
 
 ## Session Continuity
 
 Last session: 2026-03-19
-Stopped at: Completed 04-02-PLAN.md — Phase 4 complete
+Stopped at: Completed quick task 2 — Analytics view with bar chart
 Resume file: None
