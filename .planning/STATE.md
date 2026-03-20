@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 Phase: 4 of 5 (Route Building) -- COMPLETE
 Plan: 2 of 2 (04-02 complete)
 Status: Phase 4 complete, all plans done
-Last activity: 2026-03-19 — Completed 04-02 route building UI (drag reorder, route stats)
+Last activity: 2026-03-20 - Completed quick task 2: Add analytics view with real-time bar chart of knock results by selected runs
 
 Progress: [██████████] 100% (v1.0 complete, Phase 3 done, Phase 4 done)
 
