@@ -17,10 +17,12 @@ import { deleteVisit, updateVisit, createManualVisit } from '@/actions/visits';
 import { resolveAndUpdateAddress } from '@/actions/visits';
 import { createSession, endSession, deleteSession, updateSession, reorderSessions, createPlannedRoute, addPlannedKnocks } from '@/actions/sessions';
 import { findAddressesInArea } from '@/actions/geocoding';
-import { sortKnocksWalkingOrder } from '@/lib/route-sort';
-import { Plus, Footprints, DoorOpen, Map as MapIcon } from 'lucide-react';
+import { sortKnocksWalkingOrder, sortKnocksByDirection } from '@/lib/route-sort';
+import { Plus, Footprints, DoorOpen, Map as MapIcon, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DrawingPoint } from '@/lib/drawing';
+import type { PlannedKnock } from './DrawingMap';
+import { AnalyticsPanel } from './AnalyticsPanel';
 
 const DashboardMap = dynamic(() => import('./DashboardMap'), {
   ssr: false,
@@ -43,8 +45,18 @@ interface DashboardShellProps {
 export function DashboardShell({ sessions, visits, resultTags }: DashboardShellProps) {
   const router = useRouter();
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<SidebarTab>('knocks');
+  // Tab state (persisted — hydration-safe via useEffect)
+  const [activeTab, setActiveTabRaw] = useState<SidebarTab>('knocks');
+  const setActiveTab = useCallback((tab: SidebarTab) => {
+    setActiveTabRaw(tab);
+    localStorage.setItem('dashboard-tab', tab);
+  }, []);
+  useEffect(() => {
+    const saved = localStorage.getItem('dashboard-tab');
+    if (saved === 'runs' || saved === 'knocks' || saved === 'plan') {
+      setActiveTabRaw(saved);
+    }
+  }, []);
 
   // Knocks state
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
@@ -57,11 +69,49 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   // Plan tab state
-  const [plannedKnocks, setPlannedKnocks] = useState<Array<{ latitude: number; longitude: number; address: string }>>([]);
+  const [plannedKnocks, setPlannedKnocks] = useState<PlannedKnock[]>([]);
+  const [selectedKnockId, setSelectedKnockId] = useState<string | null>(null);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [routeName, setRouteName] = useState('');
   const [isSavingRoute, setIsSavingRoute] = useState(false);
   const [showPlanned, setShowPlanned] = useState(true);
+  const [showExecutedInPlan, setShowExecutedInPlanRaw] = useState(false);
+  const setShowExecutedInPlan = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    setShowExecutedInPlanRaw((prev) => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      localStorage.setItem('dashboard-show-executed', String(next));
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    setShowExecutedInPlanRaw(localStorage.getItem('dashboard-show-executed') === 'true');
+  }, []);
+
+  // Map/Analytics toggle state
+  const [showMap, setShowMap] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  useEffect(() => {
+    const savedMap = localStorage.getItem('dashboard-show-map');
+    const savedAnalytics = localStorage.getItem('dashboard-show-analytics');
+    if (savedMap !== null) setShowMap(savedMap === 'true');
+    if (savedAnalytics !== null) setShowAnalytics(savedAnalytics === 'true');
+  }, []);
+  const toggleMap = useCallback(() => {
+    setShowMap((prev) => {
+      if (prev && !showAnalytics) return prev; // cannot turn off last one
+      const next = !prev;
+      localStorage.setItem('dashboard-show-map', String(next));
+      return next;
+    });
+  }, [showAnalytics]);
+  const toggleAnalytics = useCallback(() => {
+    setShowAnalytics((prev) => {
+      if (prev && !showMap) return prev; // cannot turn off last one
+      const next = !prev;
+      localStorage.setItem('dashboard-show-analytics', String(next));
+      return next;
+    });
+  }, [showMap]);
 
   // Escape key: close modal → deselect item → deselect filter (priority order)
   useEffect(() => {
@@ -83,7 +133,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
   const sessionColorMap = useMemo(() => {
     const map = new Map<string, string>();
     sessions.forEach((session, index) => {
-      map.set(session.id, getSessionColor(index));
+      map.set(session.id, session.color ?? getSessionColor(index));
     });
     return map;
   }, [sessions]);
@@ -220,6 +270,18 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
     }
   }, [router]);
 
+  const handleChangeRunColor = useCallback(async (
+    sessionId: string,
+    color: string
+  ) => {
+    try {
+      await updateSession(sessionId, { color });
+      router.refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update color');
+    }
+  }, [router]);
+
   const handleDeleteRun = useCallback(async (sessionId: string) => {
     try {
       await deleteSession(sessionId);
@@ -277,7 +339,17 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
       const addresses = await findAddressesInArea(
         points.map((p) => ({ lat: p.lat, lng: p.lng }))
       );
-      setPlannedKnocks(sortKnocksWalkingOrder(addresses));
+      const sorted = sortKnocksWalkingOrder(addresses);
+      setPlannedKnocks(
+        sorted.map((a) => ({
+          id: crypto.randomUUID(),
+          latitude: a.latitude,
+          longitude: a.longitude,
+          address: a.address,
+          notes: '',
+        }))
+      );
+      setSelectedKnockId(null);
       if (addresses.length === 0) {
         toast.info('No houses found in the selected area. Try a larger area.');
       }
@@ -299,6 +371,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
           latitude: k.latitude,
           longitude: k.longitude,
           address: k.address,
+          notes: k.notes || undefined,
         }))
       );
       toast.success(`Route "${routeName.trim()}" saved with ${plannedKnocks.length} knocks`);
@@ -318,11 +391,46 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
     // User cancelled drawing — nothing to clean up
   }, []);
 
+  const handleClearAllPlan = useCallback(() => {
+    setPlannedKnocks([]);
+    setSelectedKnockId(null);
+  }, []);
+
+  const handleDeleteKnock = useCallback((id: string) => {
+    setPlannedKnocks((prev) => prev.filter((k) => k.id !== id));
+    if (selectedKnockId === id) setSelectedKnockId(null);
+  }, [selectedKnockId]);
+
+  const handleUpdateKnockNotes = useCallback((id: string, notes: string) => {
+    setPlannedKnocks((prev) =>
+      prev.map((k) => (k.id === id ? { ...k, notes } : k))
+    );
+  }, []);
+
+  const handleSelectKnock = useCallback((id: string | null) => {
+    setSelectedKnockId(id);
+  }, []);
+
+  const handleDirectionSet = useCallback((dirPoints: Array<{ lat: number; lng: number }>) => {
+    setPlannedKnocks((prev) => {
+      if (prev.length === 0) return prev;
+      return sortKnocksByDirection(prev, dirPoints);
+    });
+  }, []);
+
   // Planned knocks from existing planned routes (for map display)
   const plannedVisits = useMemo(() => {
     return visits.filter((v) => {
       const session = sessions.find((s) => s.id === v.session_id);
       return session && !session.started;
+    });
+  }, [visits, sessions]);
+
+  // Executed visits (from started sessions) for plan view overlay
+  const executedVisits = useMemo(() => {
+    return visits.filter((v) => {
+      const session = sessions.find((s) => s.id === v.session_id);
+      return session && session.started;
     });
   }, [visits, sessions]);
 
@@ -375,6 +483,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
         selectedRunId={selectedRunId}
         onSelectRun={setSelectedRunId}
         onReorder={handleReorderRun}
+        onChangeColor={handleChangeRunColor}
       />
       {selectedRun && (
         <RunDetail
@@ -385,11 +494,29 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
           onEdit={handleEditRun}
           onDelete={handleDeleteRun}
           onEndRun={handleEndRun}
+          onChangeColor={handleChangeRunColor}
         />
       )}
     </>
   ) : activeTab === 'plan' ? (
     <>
+      {/* Show Runs toggle */}
+      {executedVisits.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+          <button
+            onClick={() => setShowExecutedInPlan((v) => !v)}
+            className={`flex items-center gap-2 text-xs transition-colors ${
+              showExecutedInPlan ? 'text-zinc-300' : 'text-zinc-500'
+            }`}
+          >
+            <div
+              className="w-3 h-3 rounded-sm border border-zinc-500"
+              style={{ backgroundColor: showExecutedInPlan ? '#ef4444' : 'transparent' }}
+            />
+            Show past runs ({executedVisits.length} knocks)
+          </button>
+        </div>
+      )}
       {isLoadingAddresses ? (
         <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">
           Finding houses in area...
@@ -397,10 +524,14 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
       ) : plannedKnocks.length > 0 ? (
         <>
           <PlannedKnockList
-            knocks={plannedKnocks}
-            onClear={() => setPlannedKnocks([])}
-            onReorder={setPlannedKnocks}
-          />
+                      knocks={plannedKnocks}
+                      onClear={() => { setPlannedKnocks([]); setSelectedKnockId(null); }}
+                      onReorder={setPlannedKnocks}
+                      selectedKnockId={selectedKnockId}
+                      onSelectKnock={(id) => setSelectedKnockId(id === selectedKnockId ? null : id)}
+                      onDeleteKnock={handleDeleteKnock}
+                      onUpdateNotes={handleUpdateKnockNotes}
+                    />
           {/* Save route form */}
           <div className="border-t border-zinc-800 p-4 space-y-3">
             <input
@@ -482,23 +613,43 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
     <>
       {/* Desktop layout */}
       <div className="hidden md:flex flex-1">
-        <div className="flex-1 relative">
+        <div className="flex-1 relative flex flex-col">
           {activeTab === 'plan' ? (
             <DrawingMap
               onPolygonComplete={handlePolygonComplete}
               onCancel={handleCancelPlan}
+              onClearAll={handleClearAllPlan}
+              onDirectionSet={handleDirectionSet}
+              plannedKnocks={plannedKnocks}
+              selectedKnockId={selectedKnockId}
+              onSelectKnock={handleSelectKnock}
+              executedVisits={executedVisits}
+              showExecuted={showExecutedInPlan}
             />
           ) : (
             <>
-              <DashboardMap
-                visits={mapVisits}
-                sessionColorMap={sessionColorMap}
-                selectedVisitId={activeTab === 'knocks' ? selectedVisitId : null}
-                onSelectVisit={(id) => {
-                  if (activeTab === 'knocks') setSelectedVisitId(id);
-                }}
-                plannedKnocks={showPlanned ? plannedVisits : []}
-              />
+              {showMap && (
+                <div className="flex-1 relative">
+                  <DashboardMap
+                    visits={mapVisits}
+                    sessionColorMap={sessionColorMap}
+                    selectedVisitId={activeTab === 'knocks' ? selectedVisitId : null}
+                    onSelectVisit={(id) => {
+                      if (activeTab === 'knocks') setSelectedVisitId(id);
+                    }}
+                    plannedKnocks={showPlanned && !(activeTab === 'runs' && selectedRunId) ? plannedVisits : []}
+                    focusKey={activeTab === 'runs' ? selectedRunId : selectedSessionId}
+                  />
+                </div>
+              )}
+              {showMap && showAnalytics && (
+                <div className="border-t border-zinc-700" />
+              )}
+              {showAnalytics && (
+                <div className="flex-1">
+                  <AnalyticsPanel visits={mapVisits} resultTags={resultTags} />
+                </div>
+              )}
               <button
                 onClick={activeTab === 'knocks' ? handleAddVisit : handleAddRun}
                 className="absolute top-4 right-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg shadow-lg hover:bg-blue-500 transition-colors"
@@ -521,6 +672,31 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
                   Planned
                 </button>
               )}
+              {/* Map/Analytics toggle buttons */}
+              <div className="absolute bottom-4 right-4 z-[1000] flex gap-2">
+                <button
+                  onClick={toggleMap}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg shadow-lg transition-colors flex items-center gap-1.5 ${
+                    showMap
+                      ? 'bg-green-600 text-white'
+                      : 'bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700'
+                  }`}
+                >
+                  <MapIcon size={16} />
+                  Map
+                </button>
+                <button
+                  onClick={toggleAnalytics}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg shadow-lg transition-colors flex items-center gap-1.5 ${
+                    showAnalytics
+                      ? 'bg-green-600 text-white'
+                      : 'bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700'
+                  }`}
+                >
+                  <BarChart3 size={16} />
+                  Analytics
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -539,6 +715,13 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
               <DrawingMap
                 onPolygonComplete={handlePolygonComplete}
                 onCancel={handleCancelPlan}
+              onClearAll={handleClearAllPlan}
+              onDirectionSet={handleDirectionSet}
+                plannedKnocks={plannedKnocks}
+                selectedKnockId={selectedKnockId}
+                onSelectKnock={handleSelectKnock}
+                executedVisits={executedVisits}
+                showExecuted={showExecutedInPlan}
               />
             </div>
             {(isLoadingAddresses || plannedKnocks.length > 0) && (
@@ -551,8 +734,12 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
                   <>
                     <PlannedKnockList
                       knocks={plannedKnocks}
-                      onClear={() => setPlannedKnocks([])}
+                      onClear={() => { setPlannedKnocks([]); setSelectedKnockId(null); }}
                       onReorder={setPlannedKnocks}
+                      selectedKnockId={selectedKnockId}
+                      onSelectKnock={(id) => setSelectedKnockId(id === selectedKnockId ? null : id)}
+                      onDeleteKnock={handleDeleteKnock}
+                      onUpdateNotes={handleUpdateKnockNotes}
                     />
                     <div className="border-t border-zinc-800 p-3 space-y-2">
                       <input
@@ -628,6 +815,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
               selectedRunId={selectedRunId}
               onSelectRun={setSelectedRunId}
               onReorder={handleReorderRun}
+              onChangeColor={handleChangeRunColor}
             />
             {selectedRun && (
               <MobileRunDetail
@@ -638,6 +826,7 @@ export function DashboardShell({ sessions, visits, resultTags }: DashboardShellP
                 onEdit={handleEditRun}
                 onDelete={handleDeleteRun}
                 onClose={() => setSelectedRunId(null)}
+                onChangeColor={handleChangeRunColor}
               />
             )}
           </>
@@ -669,6 +858,7 @@ function MobileRunDetail({
   onEdit,
   onDelete,
   onClose,
+  onChangeColor,
 }: {
   session: Session;
   visits: Visit[];
@@ -677,6 +867,7 @@ function MobileRunDetail({
   onEdit: (id: string, data: { label: string; notes: string }) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
+  onChangeColor?: (id: string, color: string) => void;
 }) {
   return (
     <>
@@ -708,6 +899,7 @@ function MobileRunDetail({
             onViewKnocks={(id) => { onClose(); onViewKnocks(id); }}
             onEdit={onEdit}
             onDelete={(id) => { onClose(); onDelete(id); }}
+            onChangeColor={onChangeColor}
           />
         </div>
       </div>
