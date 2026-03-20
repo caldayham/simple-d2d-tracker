@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 Phase: 4 of 5 (Route Building) -- COMPLETE
 Plan: 2 of 2 (04-02 complete)
 Status: Phase 4 complete, all plans done
-Last activity: 2026-03-20 - Completed quick task 2: Add analytics view with real-time bar chart of knock results by selected runs
+Last activity: 2026-03-20 - Completed quick task 3: Add Practice tab with mind-map script builder canvas
 
 Progress: [██████████] 100% (v1.0 complete, Phase 3 done, Phase 4 done)
 
@@ -84,9 +84,10 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 1 | Add gender, age range, name, and occupancy fields to knocks | 2026-03-19 | 6c2eef7 | [1-add-gender-and-age-range-fields-to-knock](./quick/1-add-gender-and-age-range-fields-to-knock/) |
 | 2 | Add analytics view with real-time bar chart | 2026-03-19 | fc81da0 | [2-add-analytics-view-with-real-time-bar-ch](./quick/2-add-analytics-view-with-real-time-bar-ch/) |
+| 3 | Add Practice tab with mind-map script builder canvas | 2026-03-20 | 7ee1d48 | [3-add-practice-tab-with-mind-map-script-bu](./quick/3-add-practice-tab-with-mind-map-script-bu/) |
 
 ## Session Continuity
 
-Last session: 2026-03-19
-Stopped at: Completed quick task 2 — Analytics view with bar chart
+Last session: 2026-03-20
+Stopped at: Completed quick task 3 — Practice tab with mind-map canvas
 Resume file: None
