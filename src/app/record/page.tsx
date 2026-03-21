@@ -327,7 +327,7 @@ export default function RecordPage() {
   const recordDisabled = !activeSession || !isAccurate || !!pendingResultVisitId;
 
   return (
-    <div className="relative h-[100dvh] flex flex-col">
+    <div className="relative h-full flex-1 flex flex-col">
       {/* Full-screen background map */}
       <LocationMap
         latitude={position?.latitude ?? null}
@@ -337,7 +337,7 @@ export default function RecordPage() {
       />
 
       {/* Top bar overlay — session controls + GPS */}
-      <div className="relative z-10 pointer-events-none px-4 pt-safe">
+      <div className="relative z-10 pointer-events-none px-4">
         <div className="pt-3 pb-1 pointer-events-auto">
           <SessionControls
             activeSession={activeSession}
@@ -359,7 +359,7 @@ export default function RecordPage() {
       <div className="flex-1" />
 
       {/* Bottom panel overlay */}
-      <div className="relative z-10 pointer-events-none px-4 pb-safe">
+      <div className="relative z-10 pointer-events-none px-4 pb-2">
         {pendingResultVisitId ? (
           <div className="pointer-events-auto pb-4">
             <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2 mb-3 text-center">
