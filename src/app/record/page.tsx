@@ -7,7 +7,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { createSession, endSession } from '@/actions/sessions';
 import { createSignedUploadUrl } from '@/actions/storage';
-import { createVisit, resolveAndUpdateAddress, updateVisitResult } from '@/actions/visits';
+import { createVisit, resolveAndUpdateAddress, updateVisitResult, getAllVisitLocations } from '@/actions/visits';
 import { createClient } from '@/lib/supabase/client';
 import { getFileExtension } from '@/lib/audio';
 import { getResultTags } from '@/actions/settings';
@@ -33,6 +33,12 @@ type SessionVisit = {
   result: string | null;
 };
 
+type KnockedDoor = {
+  latitude: number;
+  longitude: number;
+  result: string | null;
+};
+
 export default function RecordPage() {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
@@ -48,12 +54,18 @@ export default function RecordPage() {
   const [pendingResultVisitId, setPendingResultVisitId] = useState<string | null>(null);
   const [isSubmittingResult, setIsSubmittingResult] = useState(false);
   const [resultTags, setResultTags] = useState<ResultTag[]>([]);
+  const [knockedDoors, setKnockedDoors] = useState<KnockedDoor[]>([]);
   const pendingResultRef = useRef<{ tempId: string; result: string; notes?: string; demographics?: Demographics } | null>(null);
 
   useEffect(() => {
     getResultTags().then(setResultTags).catch(() => {
       setResultTags(DEFAULT_RESULT_TAGS);
     });
+  }, []);
+
+  // Load all previously knocked doors
+  useEffect(() => {
+    getAllVisitLocations().then(setKnockedDoors).catch(() => {});
   }, []);
 
   const {
@@ -126,6 +138,8 @@ export default function RecordPage() {
       setLastAddress(null);
       setCurrentAddress(null);
       setLastUploadStatus('idle');
+      // Refresh knocked doors when starting session
+      getAllVisitLocations().then(setKnockedDoors).catch(() => {});
     } catch (err) {
       toast.error('Failed to start session');
       console.error(err);
@@ -182,6 +196,9 @@ export default function RecordPage() {
       };
       setSessionVisits((prev) => [newVisit, ...prev]);
       setLastAddress(currentAddress);
+
+      // Add to knocked doors immediately so it shows on the map
+      setKnockedDoors((prev) => [...prev, { latitude, longitude, result: null }]);
 
       // Show result picker immediately
       setPendingResultVisitId(tempId);
@@ -275,6 +292,18 @@ export default function RecordPage() {
       )
     );
 
+    // Update the knocked door marker color on the map
+    if (position) {
+      setKnockedDoors((prev) => {
+        const updated = [...prev];
+        // Update the most recent door (last in array)
+        if (updated.length > 0) {
+          updated[updated.length - 1] = { ...updated[updated.length - 1], result };
+        }
+        return updated;
+      });
+    }
+
     const visitId = pendingResultVisitId;
     setPendingResultVisitId(null);
     setCurrentAddress(null); // Reset for next house
@@ -293,30 +322,23 @@ export default function RecordPage() {
         setIsSubmittingResult(false);
       }
     }
-  }, [pendingResultVisitId]);
+  }, [pendingResultVisitId, position]);
 
   const recordDisabled = !activeSession || !isAccurate || !!pendingResultVisitId;
 
   return (
-    <div className="relative min-h-screen">
-      {/* Background Map */}
+    <div className="relative h-[100dvh] flex flex-col">
+      {/* Full-screen background map */}
       <LocationMap
         latitude={position?.latitude ?? null}
         longitude={position?.longitude ?? null}
         accuracy={accuracy}
+        knockedDoors={knockedDoors}
       />
 
-      {/* Overlay UI */}
-      <div className="relative z-10 flex min-h-screen flex-col px-4 pt-safe pb-safe pointer-events-none">
-        {/* Header */}
-        <div className="pt-4 pb-2 pointer-events-auto">
-          <h1 className="text-lg font-semibold text-white text-center drop-shadow-md">
-            Canvassing Companion
-          </h1>
-        </div>
-
-        {/* Session Controls */}
-        <div className="py-3 pointer-events-auto">
+      {/* Top bar overlay — session controls + GPS */}
+      <div className="relative z-10 pointer-events-none px-4 pt-safe">
+        <div className="pt-3 pb-1 pointer-events-auto">
           <SessionControls
             activeSession={activeSession}
             isLoading={isSessionLoading}
@@ -324,66 +346,68 @@ export default function RecordPage() {
             onEnd={handleEndSession}
           />
         </div>
-
-        {/* GPS Status */}
-        <div className="flex justify-center py-2 pointer-events-auto">
+        <div className="flex justify-center py-1 pointer-events-auto">
           <GpsStatus
             accuracy={accuracy}
             isWatching={isWatching}
             isAccurate={isAccurate}
           />
         </div>
+      </div>
 
-        {/* Center content */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 pointer-events-auto">
-          {pendingResultVisitId ? (
-            <>
-              <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2">
-                <p className="text-white text-sm font-medium">
-                  {lastAddress || 'Resolving address...'}
-                </p>
-              </div>
-              <ResultPicker
-                tags={resultTags}
-                onSelect={handleResultSelect}
-                isSubmitting={isSubmittingResult}
-              />
-            </>
-          ) : (
-            <>
-              <RecordButton
-                isRecording={isRecording}
-                duration={duration}
-                disabled={recordDisabled}
-                onStart={handleStartRecording}
-                onStop={handleStopRecording}
-              />
+      {/* Spacer — lets map fill the middle */}
+      <div className="flex-1" />
 
-              {/* Address editor with manual override + nearby search */}
-              <AddressEditor
-                currentAddress={currentAddress}
-                position={position}
-                isFetching={isFetchingAddress}
-                onUpdateAddress={handleUpdateAddress}
-                onSetAddress={setCurrentAddress}
-              />
+      {/* Bottom panel overlay */}
+      <div className="relative z-10 pointer-events-none px-4 pb-safe">
+        {pendingResultVisitId ? (
+          <div className="pointer-events-auto pb-4">
+            <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2 mb-3 text-center">
+              <p className="text-white text-sm font-medium">
+                {lastAddress || 'Resolving address...'}
+              </p>
+            </div>
+            <ResultPicker
+              tags={resultTags}
+              onSelect={handleResultSelect}
+              isSubmitting={isSubmittingResult}
+            />
+          </div>
+        ) : (
+          <div className="pointer-events-auto pb-4 flex flex-col items-center gap-3">
+            {/* Address editor */}
+            <AddressEditor
+              currentAddress={currentAddress}
+              position={position}
+              isFetching={isFetchingAddress}
+              onUpdateAddress={handleUpdateAddress}
+              onSetAddress={setCurrentAddress}
+            />
 
-              {/* Upload Status */}
-              <UploadStatus
-                pendingUploads={pendingUploads}
-                lastUploadStatus={lastUploadStatus}
-              />
-            </>
-          )}
-        </div>
+            {/* Upload Status */}
+            <UploadStatus
+              pendingUploads={pendingUploads}
+              lastUploadStatus={lastUploadStatus}
+            />
+
+            {/* Record button */}
+            <RecordButton
+              isRecording={isRecording}
+              duration={duration}
+              disabled={recordDisabled}
+              onStart={handleStartRecording}
+              onStop={handleStopRecording}
+            />
+          </div>
+        )}
 
         {/* Recent Visits List */}
-        {sessionVisits.length > 0 && (
+        {sessionVisits.length > 0 && !pendingResultVisitId && (
           <div className="pb-4 pointer-events-auto">
             <h2 className="text-sm font-medium text-white/70 mb-2">
               Recent Visits
             </h2>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-32 overflow-y-auto">
               {sessionVisits.map((visit) => (
                 <div
                   key={visit.id}

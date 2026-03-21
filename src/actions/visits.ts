@@ -141,6 +141,26 @@ export async function deleteVisit(visitId: string): Promise<void> {
   if (error) throw new Error(`Failed to delete visit: ${error.message}`);
 }
 
+export async function getAllVisitLocations(): Promise<
+  { latitude: number; longitude: number; result: string | null }[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('visits')
+    .select('latitude, longitude, result')
+    .not('latitude', 'is', null)
+    .not('longitude', 'is', null);
+
+  if (error) return [];
+  return (data ?? []) as { latitude: number; longitude: number; result: string | null }[];
+}
+
 export async function reorderKnocks(
   orderedIds: string[]
 ): Promise<void> {
