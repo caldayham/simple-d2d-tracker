@@ -361,7 +361,7 @@ export default function RecordPage() {
       {/* Bottom panel overlay */}
       <div className="relative z-10 pointer-events-none px-4 pb-2">
         {pendingResultVisitId ? (
-          <div className="pointer-events-auto pb-4">
+          <div className="pointer-events-auto pb-4 max-h-[80dvh] overflow-y-auto overscroll-contain">
             <div className="rounded-lg bg-black/50 backdrop-blur-sm px-4 py-2 mb-3 text-center">
               <p className="text-white text-sm font-medium">
                 {lastAddress || 'Resolving address...'}
