@@ -51,7 +51,7 @@ export default function ResultPicker({ tags, onSelect, isSubmitting }: ResultPic
   };
 
   return (
-    <div className="rounded-xl bg-black/70 backdrop-blur-md p-4 w-full max-w-sm">
+    <div className="rounded-xl bg-black/70 backdrop-blur-md p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] w-full max-w-sm">
       <p className="text-white text-sm font-medium text-center mb-3">
         How did it go?
       </p>
