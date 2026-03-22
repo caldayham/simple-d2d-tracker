@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { createSession, endSession } from '@/actions/sessions';
+import { createSession, endSession, getActiveSession } from '@/actions/sessions';
 import { createSignedUploadUrl } from '@/actions/storage';
 import { createVisit, resolveAndUpdateAddress, updateVisitResult, getAllVisitLocations } from '@/actions/visits';
 import { createClient } from '@/lib/supabase/client';
@@ -66,6 +66,28 @@ export default function RecordPage() {
   // Load all previously knocked doors
   useEffect(() => {
     getAllVisitLocations().then(setKnockedDoors).catch(() => {});
+  }, []);
+
+  // Restore active session if one exists (e.g. after navigating away and back)
+  useEffect(() => {
+    if (activeSession) return; // already have one
+    getActiveSession().then((result) => {
+      if (!result) return;
+      setActiveSession(result.session);
+      startWatching();
+      setSessionVisits(
+        result.visits
+          .filter((v) => v.recorded_at)
+          .map((v) => ({
+            id: v.id,
+            address: v.address,
+            duration: v.audio_duration_seconds ?? 0,
+            recordedAt: v.recorded_at!,
+            result: v.result,
+          }))
+      );
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const {

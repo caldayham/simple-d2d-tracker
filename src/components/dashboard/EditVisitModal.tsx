@@ -239,18 +239,21 @@ export function EditVisitModal({
               <span className="text-zinc-400 text-xs">Coordinates</span>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                      setLatitude(pos.coords.latitude.toString());
-                      setLongitude(pos.coords.longitude.toString());
-                    },
-                    () => alert('Could not get location')
-                  );
+                disabled={!address || address.length < 3 || isSearching}
+                onClick={async () => {
+                  setIsSearching(true);
+                  const results = await searchAddress(address, searchCenter.lat, searchCenter.lon);
+                  setIsSearching(false);
+                  if (results.length > 0) {
+                    setLatitude(results[0].lat.toString());
+                    setLongitude(results[0].lon.toString());
+                  } else {
+                    alert('Could not find coordinates for this address');
+                  }
                 }}
-                className="text-blue-400 text-xs hover:text-blue-300 transition-colors"
+                className="text-blue-400 text-xs hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Use current location
+                {isSearching ? 'Looking up...' : 'Update coordinates from address'}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">

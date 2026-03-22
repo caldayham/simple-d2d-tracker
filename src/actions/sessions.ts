@@ -26,6 +26,35 @@ export async function createSession(lat?: number, lng?: number): Promise<Session
   return data as Session;
 }
 
+export async function getActiveSession(): Promise<{ session: Session; visits: { id: string; address: string | null; audio_duration_seconds: number | null; recorded_at: string | null; result: string | null }[] } | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('started', true)
+    .is('ended_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!session) return null;
+
+  const { data: visits } = await supabase
+    .from('visits')
+    .select('id, address, audio_duration_seconds, recorded_at, result')
+    .eq('session_id', session.id)
+    .order('recorded_at', { ascending: false });
+
+  return { session: session as Session, visits: visits ?? [] };
+}
+
 export async function endSession(sessionId: string): Promise<void> {
   const supabase = await createClient();
   const {
