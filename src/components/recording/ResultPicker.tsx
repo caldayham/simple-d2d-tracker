@@ -51,134 +51,138 @@ export default function ResultPicker({ tags, onSelect, isSubmitting }: ResultPic
   };
 
   return (
-    <div className="rounded-xl bg-black/70 backdrop-blur-md p-4 pb-[calc(4rem+env(safe-area-inset-bottom))] w-full max-w-sm">
-      <p className="text-white text-sm font-medium text-center mb-3">
-        How did it go?
-      </p>
-      <div className="flex flex-col gap-2">
-        {tags.map((tag) => {
-          const isSelected = selected.has(tag.name);
-          return (
-            <button
-              key={tag.name}
-              onClick={() => toggle(tag.name)}
-              disabled={isSubmitting}
-              style={{
-                backgroundColor: isSelected ? tag.color : undefined,
-                borderColor: tag.color,
-              }}
-              className={`
-                w-full py-3 px-4 rounded-lg font-medium text-sm
-                transition-all active:scale-95 min-h-[48px]
-                flex items-center justify-between
-                border-2
-                ${isSelected ? 'text-white' : 'text-zinc-300 bg-white/5'}
-                ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-            >
-              {tag.name}
-              {isSelected && <Check size={18} />}
-            </button>
-          );
-        })}
-      </div>
+    <div className="rounded-xl bg-black/70 backdrop-blur-md w-full max-w-sm flex flex-col max-h-[80vh]">
+      <div className="overflow-y-auto p-4 flex-1">
+        <p className="text-white text-sm font-medium text-center mb-3">
+          How did it go?
+        </p>
+        <div className="flex flex-col gap-2">
+          {tags.map((tag) => {
+            const isSelected = selected.has(tag.name);
+            return (
+              <button
+                key={tag.name}
+                onClick={() => toggle(tag.name)}
+                disabled={isSubmitting}
+                style={{
+                  backgroundColor: isSelected ? tag.color : undefined,
+                  borderColor: tag.color,
+                }}
+                className={`
+                  w-full py-3 px-4 rounded-lg font-medium text-sm
+                  transition-all active:scale-95 min-h-[48px]
+                  flex items-center justify-between
+                  border-2
+                  ${isSelected ? 'text-white' : 'text-zinc-300 bg-white/5'}
+                  ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+              >
+                {tag.name}
+                {isSelected && <Check size={18} />}
+              </button>
+            );
+          })}
+        </div>
 
-      {/* Notes */}
-      <textarea
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        placeholder="Add notes (optional)..."
-        rows={2}
-        className="mt-3 w-full rounded-lg bg-white/10 border border-white/20 text-white text-sm px-3 py-2 placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/40 resize-none"
-      />
-
-      {/* Demographics */}
-      <div className="mt-3 space-y-3">
-        {/* Name */}
-        <input
-          type="text"
-          value={contactName}
-          onChange={(e) => setContactName(e.target.value)}
-          placeholder="Name (optional)"
-          className="w-full rounded-lg bg-white/10 border border-white/20 text-white text-sm px-3 py-2 placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/40"
+        {/* Notes */}
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Add notes (optional)..."
+          rows={2}
+          className="mt-3 w-full rounded-lg bg-white/10 border border-white/20 text-white text-sm px-3 py-2 placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/40 resize-none"
         />
 
-        {/* Gender */}
-        <div>
-          <p className="text-white/50 text-xs mb-1.5">Gender</p>
-          <div className="flex gap-2">
-            {GENDER_OPTIONS.map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setGender(gender === g ? null : g)}
-                className={`flex-1 py-1.5 px-3 text-xs rounded-full font-medium transition-all ${
-                  gender === g
-                    ? 'bg-white text-black'
-                    : 'bg-white/10 border border-white/20 text-white'
-                }`}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Demographics */}
+        <div className="mt-3 space-y-3">
+          {/* Name */}
+          <input
+            type="text"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            placeholder="Name (optional)"
+            className="w-full rounded-lg bg-white/10 border border-white/20 text-white text-sm px-3 py-2 placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/40"
+          />
 
-        {/* Age Range */}
-        <div>
-          <p className="text-white/50 text-xs mb-1.5">Age Range</p>
-          <div className="flex gap-2">
-            {AGE_RANGE_OPTIONS.map((a) => (
-              <button
-                key={a}
-                type="button"
-                onClick={() => setAgeRange(ageRange === a ? null : a)}
-                className={`flex-1 py-1.5 px-3 text-xs rounded-full font-medium transition-all ${
-                  ageRange === a
-                    ? 'bg-white text-black'
-                    : 'bg-white/10 border border-white/20 text-white'
-                }`}
-              >
-                {a}
-              </button>
-            ))}
+          {/* Gender */}
+          <div>
+            <p className="text-white/50 text-xs mb-1.5">Gender</p>
+            <div className="flex gap-2">
+              {GENDER_OPTIONS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGender(gender === g ? null : g)}
+                  className={`flex-1 py-1.5 px-3 text-xs rounded-full font-medium transition-all ${
+                    gender === g
+                      ? 'bg-white text-black'
+                      : 'bg-white/10 border border-white/20 text-white'
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Occupancy */}
-        <div>
-          <p className="text-white/50 text-xs mb-1.5">Occupancy</p>
-          <div className="flex gap-2">
-            {OCCUPANCY_OPTIONS.map((o) => (
-              <button
-                key={o}
-                type="button"
-                onClick={() => setOccupancy(occupancy === o ? null : o)}
-                className={`flex-1 py-1.5 px-3 text-xs rounded-full font-medium transition-all ${
-                  occupancy === o
-                    ? 'bg-white text-black'
-                    : 'bg-white/10 border border-white/20 text-white'
-                }`}
-              >
-                {o}
-              </button>
-            ))}
+          {/* Age Range */}
+          <div>
+            <p className="text-white/50 text-xs mb-1.5">Age Range</p>
+            <div className="flex gap-2">
+              {AGE_RANGE_OPTIONS.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setAgeRange(ageRange === a ? null : a)}
+                  className={`flex-1 py-1.5 px-3 text-xs rounded-full font-medium transition-all ${
+                    ageRange === a
+                      ? 'bg-white text-black'
+                      : 'bg-white/10 border border-white/20 text-white'
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Occupancy */}
+          <div>
+            <p className="text-white/50 text-xs mb-1.5">Occupancy</p>
+            <div className="flex gap-2">
+              {OCCUPANCY_OPTIONS.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setOccupancy(occupancy === o ? null : o)}
+                  className={`flex-1 py-1.5 px-3 text-xs rounded-full font-medium transition-all ${
+                    occupancy === o
+                      ? 'bg-white text-black'
+                      : 'bg-white/10 border border-white/20 text-white'
+                  }`}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Confirm button */}
-      <button
-        onClick={handleConfirm}
-        disabled={isSubmitting || selected.size === 0}
-        className={`mt-3 w-full py-3 rounded-lg font-medium text-sm transition-all ${
-          selected.size > 0
-            ? 'bg-white text-black hover:bg-zinc-200 active:scale-95'
-            : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-        } ${isSubmitting ? 'opacity-50' : ''}`}
-      >
-        {isSubmitting ? 'Saving...' : selected.size === 0 ? 'Select at least one' : `Done (${selected.size})`}
-      </button>
+      {/* Confirm button - sticky at bottom */}
+      <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-white/10">
+        <button
+          onClick={handleConfirm}
+          disabled={isSubmitting || selected.size === 0}
+          className={`w-full py-3 rounded-lg font-medium text-sm transition-all ${
+            selected.size > 0
+              ? 'bg-white text-black hover:bg-zinc-200 active:scale-95'
+              : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+          } ${isSubmitting ? 'opacity-50' : ''}`}
+        >
+          {isSubmitting ? 'Saving...' : selected.size === 0 ? 'Select at least one' : `Done (${selected.size})`}
+        </button>
+      </div>
     </div>
   );
 }
